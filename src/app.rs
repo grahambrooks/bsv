@@ -112,14 +112,6 @@ impl App {
         self.tree_state.expanded.remove(&self.tree_state.selected);
     }
 
-    pub fn expand(&mut self) {
-        if let Some(node) = self.tree.get_node(self.tree_state.selected) {
-            if !node.children.is_empty() {
-                self.tree_state.expanded.insert(self.tree_state.selected);
-            }
-        }
-    }
-
     pub fn expand_all(&mut self) {
         self.tree_state.expand_all(&self.tree);
     }

@@ -145,13 +145,6 @@ impl Entity {
             .unwrap_or_else(|| self.metadata.name.clone())
     }
 
-    pub fn full_name(&self) -> String {
-        match &self.metadata.namespace {
-            Some(ns) => format!("{}/{}", ns, self.metadata.name),
-            None => self.metadata.name.clone(),
-        }
-    }
-
     pub fn get_spec_string(&self, key: &str) -> Option<String> {
         self.spec
             .get(key)
@@ -194,12 +187,6 @@ pub struct EntityIndex {
 }
 
 impl EntityIndex {
-    pub fn new() -> Self {
-        Self {
-            keys: HashSet::new(),
-        }
-    }
-
     pub fn build(entities: &[EntityWithSource]) -> Self {
         let keys = entities.iter().map(|e| e.entity.ref_key()).collect();
         Self { keys }

@@ -276,12 +276,16 @@ fn format_entity_ref(
     if entity_ref.kind_inferred {
         spans.push(Span::styled(
             format!("[{}]", entity_ref.kind),
-            Style::default().fg(inferred_color).add_modifier(Modifier::DIM),
+            Style::default()
+                .fg(inferred_color)
+                .add_modifier(Modifier::DIM),
         ));
     } else {
         spans.push(Span::styled(
             entity_ref.kind.clone(),
-            Style::default().fg(explicit_color).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(explicit_color)
+                .add_modifier(Modifier::BOLD),
         ));
     }
 
@@ -291,7 +295,9 @@ fn format_entity_ref(
     if entity_ref.namespace_inferred {
         spans.push(Span::styled(
             format!("[{}]", entity_ref.namespace),
-            Style::default().fg(inferred_color).add_modifier(Modifier::DIM),
+            Style::default()
+                .fg(inferred_color)
+                .add_modifier(Modifier::DIM),
         ));
     } else {
         spans.push(Span::styled(
@@ -305,7 +311,9 @@ fn format_entity_ref(
     // Name is always explicit
     spans.push(Span::styled(
         entity_ref.name.clone(),
-        Style::default().fg(explicit_color).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(explicit_color)
+            .add_modifier(Modifier::BOLD),
     ));
 
     // Add error suffix if needed
