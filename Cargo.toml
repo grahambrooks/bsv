@@ -13,7 +13,7 @@ authors = ["Your Name <your@email.com>"]
 rust-version = "1.70"
 
 [dependencies]
-ratatui = "0.28"
+ratatui = "0.30"
 crossterm = "0.29"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
