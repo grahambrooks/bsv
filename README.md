@@ -2,7 +2,7 @@
 
 A terminal UI application for exploring and visualizing [Backstage](https://backstage.io/) software catalog entities.
 
-![bsv demo](https://github.com/user-attachments/assets/placeholder.png)
+[![CI](https://github.com/grahambrooks/bsv/actions/workflows/ci.yml/badge.svg)](https://github.com/grahambrooks/bsv/actions/workflows/ci.yml)
 
 ## Features
 
