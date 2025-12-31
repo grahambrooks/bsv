@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-bsv (Backstage Entity Visualizer) is a Rust terminal UI application that discovers and visualizes Backstage entities from `catalog-info.yaml` files. It recursively scans directories, parses multi-document YAML files, and displays entities in an interactive hierarchical tree view.
+bsv (Backstage Entity Visualizer) is a Rust terminal UI application that discovers and visualizes Backstage entities from `catalog-info.yaml` files. It recursively scans directories, parses multi-document YAML files, and displays entities in an interactive hierarchical tree view with relationship visualization.
 
 ## Build Commands
 
@@ -12,8 +12,8 @@ bsv (Backstage Entity Visualizer) is a Rust terminal UI application that discove
 cargo build           # Build debug
 cargo build --release # Build release
 cargo run             # Run with current directory
-cargo run /path       # Run with specific directory
-cargo check           # Type check without building
+cargo run /path       # Run with specific directory or file
+cargo test            # Run tests
 cargo clippy          # Lint
 cargo fmt             # Format code
 ```
@@ -22,21 +22,31 @@ cargo fmt             # Format code
 
 The application follows a standard TUI architecture with separation between data, state, and presentation:
 
-- **entity.rs** - Backstage entity model (`Entity`, `EntityKind`, `Metadata`). Supports all 8 standard Backstage types: Component, API, Resource, System, Domain, Group, User, Location.
+- **entity.rs** - Backstage entity model (`Entity`, `EntityKind`, `Metadata`), entity reference parsing (`EntityRef`), and reference validation (`EntityIndex`). Supports all 8 standard Backstage types: Component, API, Resource, System, Domain, Group, User, Location.
 
-- **parser.rs** - File discovery using `walkdir` to find `catalog-info.yaml`/`.yml` files, and multi-document YAML parsing with `serde_yaml::Deserializer`.
+- **parser.rs** - File discovery using `walkdir` to find `catalog-info.yaml`/`.yml` files, and multi-document YAML parsing with `serde_yaml::Deserializer`. Supports both directory scanning and single file loading.
 
 - **tree.rs** - Builds hierarchical `EntityTree` from flat entity list. Groups entities by Domain → System → Components/APIs. `TreeState` tracks selection and expanded nodes.
 
-- **app.rs** - Application state (`App`) combining tree, tree state, and quit flag. Handles navigation commands (up/down/expand/collapse).
+- **graph.rs** - Extracts relationship graphs for entities. `RelationshipGraph` contains outgoing relationships (owner, system, domain, dependencies, APIs) and incoming relationships (entities that reference this one).
 
-- **ui.rs** - Ratatui rendering with two-panel layout: entity tree (left) and details panel (right).
+- **app.rs** - Application state (`App`) combining tree, tree state, entity index, and UI mode. Handles navigation, search, graph toggle, and reload.
 
-- **main.rs** - Terminal setup/teardown with crossterm, event loop processing keyboard input.
+- **ui.rs** - Ratatui rendering with two-panel layout: entity tree with search bar (left) and details/graph panel (right). Includes reference validation visualization.
+
+- **main.rs** - Terminal setup/teardown with crossterm, event loop processing keyboard input for both normal and search modes.
 
 ## Key Patterns
 
 - Entities are wrapped in `EntityWithSource` to track their source file path
 - Tree nodes use numeric IDs with parent-child relationships stored as `Vec<usize>`
-- Navigation works on visible nodes only (respects collapsed state)
-- Entity relationships are inferred from `spec.system` and `spec.domain` fields
+- Navigation works on visible nodes only (respects collapsed state and search filter)
+- Entity relationships are inferred from spec fields (system, domain, owner, dependsOn, providesApis, consumesApis, memberOf)
+- `EntityRef` parses Backstage reference format `[<kind>:][<namespace>/]<name>` with context-aware defaults
+- `EntityIndex` provides O(1) lookup for reference validation
+
+## UI Modes
+
+- **Normal mode**: Tree navigation, expand/collapse, toggle views
+- **Search mode**: Filter entities by name (activated with `/`)
+- **Graph view**: Show relationships instead of details (toggle with `g`)

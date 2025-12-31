@@ -3,6 +3,14 @@ name = "bsv"
 version = "0.1.0"
 edition = "2021"
 description = "Backstage Entity Visualizer - TUI for exploring catalog-info.yaml files"
+license = "MIT"
+repository = "https://github.com/yourusername/bsv"
+homepage = "https://github.com/yourusername/bsv"
+readme = "README.md"
+keywords = ["backstage", "tui", "catalog", "devops", "terminal"]
+categories = ["command-line-utilities", "development-tools"]
+authors = ["Your Name <your@email.com>"]
+rust-version = "1.70"
 
 [dependencies]
 ratatui = "0.28"
@@ -11,3 +19,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 walkdir = "2.5"
 anyhow = "1.0"
+
+[[bin]]
+name = "bsv"
+path = "src/main.rs"
