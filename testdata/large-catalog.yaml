@@ -1,0 +1,2661 @@
+# Large test catalog for UX testing
+# Contains 200+ entities across all core types with complex relationships
+
+# ============================================================================
+# DOMAINS (5)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: platform
+  title: Platform Domain
+  description: Core platform infrastructure and shared services
+  tags:
+    - infrastructure
+    - core
+spec:
+  owner: group:platform-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: commerce
+  title: Commerce Domain
+  description: E-commerce and payment processing systems
+  tags:
+    - business
+    - revenue
+spec:
+  owner: group:commerce-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: customer
+  title: Customer Domain
+  description: Customer-facing applications and services
+  tags:
+    - customer
+    - frontend
+spec:
+  owner: group:customer-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: analytics
+  title: Analytics Domain
+  description: Data analytics and business intelligence
+  tags:
+    - data
+    - insights
+spec:
+  owner: group:data-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: internal
+  title: Internal Tools Domain
+  description: Internal developer and operations tools
+  tags:
+    - internal
+    - tools
+spec:
+  owner: group:devex-team
+
+# ============================================================================
+# GROUPS/TEAMS (15)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: engineering
+  title: Engineering
+  description: All engineering teams
+spec:
+  type: department
+  children:
+    - platform-team
+    - commerce-team
+    - customer-team
+    - data-team
+    - devex-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: platform-team
+  title: Platform Team
+  description: Core platform and infrastructure
+  tags:
+    - platform
+spec:
+  type: team
+  parent: engineering
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: commerce-team
+  title: Commerce Team
+  description: E-commerce platform development
+  tags:
+    - commerce
+spec:
+  type: team
+  parent: engineering
+  children:
+    - payments-squad
+    - orders-squad
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: payments-squad
+  title: Payments Squad
+  description: Payment processing specialists
+spec:
+  type: squad
+  parent: commerce-team
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: orders-squad
+  title: Orders Squad
+  description: Order management specialists
+spec:
+  type: squad
+  parent: commerce-team
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: customer-team
+  title: Customer Team
+  description: Customer experience development
+  tags:
+    - customer
+spec:
+  type: team
+  parent: engineering
+  children:
+    - web-squad
+    - mobile-squad
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: web-squad
+  title: Web Squad
+  description: Web frontend development
+spec:
+  type: squad
+  parent: customer-team
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: mobile-squad
+  title: Mobile Squad
+  description: Mobile app development
+spec:
+  type: squad
+  parent: customer-team
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: data-team
+  title: Data Team
+  description: Data engineering and analytics
+  tags:
+    - data
+spec:
+  type: team
+  parent: engineering
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: devex-team
+  title: Developer Experience Team
+  description: Internal tooling and developer productivity
+  tags:
+    - devex
+spec:
+  type: team
+  parent: engineering
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: sre-team
+  title: SRE Team
+  description: Site reliability engineering
+  tags:
+    - sre
+    - operations
+spec:
+  type: team
+  parent: engineering
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: security-team
+  title: Security Team
+  description: Application and infrastructure security
+  tags:
+    - security
+spec:
+  type: team
+  parent: engineering
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: qa-team
+  title: QA Team
+  description: Quality assurance
+  tags:
+    - qa
+    - testing
+spec:
+  type: team
+  parent: engineering
+  children: []
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: external-vendors
+  title: External Vendors
+  description: Third-party vendors and contractors
+spec:
+  type: vendor
+  children: []
+
+# ============================================================================
+# USERS (20)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: alice.smith
+  title: Alice Smith
+spec:
+  profile:
+    displayName: Alice Smith
+    email: alice.smith@example.com
+  memberOf:
+    - platform-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: bob.jones
+  title: Bob Jones
+spec:
+  profile:
+    displayName: Bob Jones
+    email: bob.jones@example.com
+  memberOf:
+    - platform-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: carol.williams
+  title: Carol Williams
+spec:
+  profile:
+    displayName: Carol Williams
+    email: carol.williams@example.com
+  memberOf:
+    - commerce-team
+    - payments-squad
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: david.brown
+  title: David Brown
+spec:
+  profile:
+    displayName: David Brown
+    email: david.brown@example.com
+  memberOf:
+    - commerce-team
+    - orders-squad
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: emma.davis
+  title: Emma Davis
+spec:
+  profile:
+    displayName: Emma Davis
+    email: emma.davis@example.com
+  memberOf:
+    - customer-team
+    - web-squad
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: frank.miller
+  title: Frank Miller
+spec:
+  profile:
+    displayName: Frank Miller
+    email: frank.miller@example.com
+  memberOf:
+    - customer-team
+    - mobile-squad
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: grace.wilson
+  title: Grace Wilson
+spec:
+  profile:
+    displayName: Grace Wilson
+    email: grace.wilson@example.com
+  memberOf:
+    - data-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: henry.moore
+  title: Henry Moore
+spec:
+  profile:
+    displayName: Henry Moore
+    email: henry.moore@example.com
+  memberOf:
+    - data-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: iris.taylor
+  title: Iris Taylor
+spec:
+  profile:
+    displayName: Iris Taylor
+    email: iris.taylor@example.com
+  memberOf:
+    - devex-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: jack.anderson
+  title: Jack Anderson
+spec:
+  profile:
+    displayName: Jack Anderson
+    email: jack.anderson@example.com
+  memberOf:
+    - sre-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: kate.thomas
+  title: Kate Thomas
+spec:
+  profile:
+    displayName: Kate Thomas
+    email: kate.thomas@example.com
+  memberOf:
+    - sre-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: leo.jackson
+  title: Leo Jackson
+spec:
+  profile:
+    displayName: Leo Jackson
+    email: leo.jackson@example.com
+  memberOf:
+    - security-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: mia.white
+  title: Mia White
+spec:
+  profile:
+    displayName: Mia White
+    email: mia.white@example.com
+  memberOf:
+    - qa-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: noah.harris
+  title: Noah Harris
+spec:
+  profile:
+    displayName: Noah Harris
+    email: noah.harris@example.com
+  memberOf:
+    - platform-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: olivia.martin
+  title: Olivia Martin
+spec:
+  profile:
+    displayName: Olivia Martin
+    email: olivia.martin@example.com
+  memberOf:
+    - commerce-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: peter.garcia
+  title: Peter Garcia
+spec:
+  profile:
+    displayName: Peter Garcia
+    email: peter.garcia@example.com
+  memberOf:
+    - customer-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: quinn.martinez
+  title: Quinn Martinez
+spec:
+  profile:
+    displayName: Quinn Martinez
+    email: quinn.martinez@example.com
+  memberOf:
+    - data-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: rachel.robinson
+  title: Rachel Robinson
+spec:
+  profile:
+    displayName: Rachel Robinson
+    email: rachel.robinson@example.com
+  memberOf:
+    - devex-team
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: sam.clark
+  title: Sam Clark
+spec:
+  profile:
+    displayName: Sam Clark
+    email: sam.clark@example.com
+  memberOf:
+    - external-vendors
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: tina.rodriguez
+  title: Tina Rodriguez
+spec:
+  profile:
+    displayName: Tina Rodriguez
+    email: tina.rodriguez@example.com
+  memberOf:
+    - engineering
+
+# ============================================================================
+# SYSTEMS - Platform Domain (5)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: auth-system
+  title: Authentication System
+  description: Central authentication and authorization services
+  tags:
+    - security
+    - core
+spec:
+  owner: group:platform-team
+  domain: platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: api-gateway
+  title: API Gateway
+  description: Central API gateway and routing
+  tags:
+    - gateway
+    - core
+spec:
+  owner: group:platform-team
+  domain: platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: messaging-system
+  title: Messaging System
+  description: Event-driven messaging infrastructure
+  tags:
+    - messaging
+    - async
+spec:
+  owner: group:platform-team
+  domain: platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: config-system
+  title: Configuration System
+  description: Centralized configuration management
+  tags:
+    - config
+    - core
+spec:
+  owner: group:platform-team
+  domain: platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: monitoring-system
+  title: Monitoring System
+  description: Observability and monitoring infrastructure
+  tags:
+    - monitoring
+    - observability
+spec:
+  owner: group:sre-team
+  domain: platform
+
+# ============================================================================
+# SYSTEMS - Commerce Domain (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: payments-system
+  title: Payments System
+  description: Payment processing and transactions
+  tags:
+    - payments
+    - finance
+spec:
+  owner: group:payments-squad
+  domain: commerce
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: orders-system
+  title: Orders System
+  description: Order management and fulfillment
+  tags:
+    - orders
+    - fulfillment
+spec:
+  owner: group:orders-squad
+  domain: commerce
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: inventory-system
+  title: Inventory System
+  description: Product inventory management
+  tags:
+    - inventory
+    - products
+spec:
+  owner: group:commerce-team
+  domain: commerce
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: pricing-system
+  title: Pricing System
+  description: Dynamic pricing and promotions
+  tags:
+    - pricing
+    - promotions
+spec:
+  owner: group:commerce-team
+  domain: commerce
+
+# ============================================================================
+# SYSTEMS - Customer Domain (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: web-app-system
+  title: Web Application
+  description: Customer-facing web application
+  tags:
+    - web
+    - frontend
+spec:
+  owner: group:web-squad
+  domain: customer
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: mobile-app-system
+  title: Mobile Application
+  description: iOS and Android mobile applications
+  tags:
+    - mobile
+    - frontend
+spec:
+  owner: group:mobile-squad
+  domain: customer
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: notifications-system
+  title: Notifications System
+  description: Customer notifications and communications
+  tags:
+    - notifications
+    - messaging
+spec:
+  owner: group:customer-team
+  domain: customer
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: support-system
+  title: Support System
+  description: Customer support and ticketing
+  tags:
+    - support
+    - helpdesk
+spec:
+  owner: group:customer-team
+  domain: customer
+
+# ============================================================================
+# SYSTEMS - Analytics Domain (3)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: data-warehouse
+  title: Data Warehouse
+  description: Central data warehouse and ETL
+  tags:
+    - data
+    - warehouse
+spec:
+  owner: group:data-team
+  domain: analytics
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: reporting-system
+  title: Reporting System
+  description: Business intelligence and reporting
+  tags:
+    - reporting
+    - bi
+spec:
+  owner: group:data-team
+  domain: analytics
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: ml-platform
+  title: ML Platform
+  description: Machine learning platform and model serving
+  tags:
+    - ml
+    - ai
+spec:
+  owner: group:data-team
+  domain: analytics
+
+# ============================================================================
+# SYSTEMS - Internal Domain (3)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: developer-portal
+  title: Developer Portal
+  description: Internal developer documentation and tools
+  tags:
+    - devex
+    - documentation
+spec:
+  owner: group:devex-team
+  domain: internal
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: ci-cd-system
+  title: CI/CD System
+  description: Continuous integration and deployment
+  tags:
+    - cicd
+    - automation
+spec:
+  owner: group:devex-team
+  domain: internal
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: admin-tools
+  title: Admin Tools
+  description: Internal administration tools
+  tags:
+    - admin
+    - internal
+spec:
+  owner: group:devex-team
+  domain: internal
+
+# ============================================================================
+# COMPONENTS - Auth System (5)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: auth-service
+  title: Auth Service
+  description: Core authentication service with OAuth2/OIDC
+  tags:
+    - java
+    - spring
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: auth-system
+  providesApis:
+    - auth-api
+  dependsOn:
+    - resource:users-db
+    - component:token-service
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: token-service
+  title: Token Service
+  description: JWT token generation and validation
+  tags:
+    - go
+    - security
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: auth-system
+  dependsOn:
+    - resource:redis-cache
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: auth-ui
+  title: Auth UI
+  description: Login and registration frontend
+  tags:
+    - react
+    - typescript
+spec:
+  type: website
+  lifecycle: production
+  owner: group:platform-team
+  system: auth-system
+  consumesApis:
+    - auth-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: oauth-provider
+  title: OAuth Provider
+  description: OAuth2 authorization server
+  tags:
+    - java
+    - oauth
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: auth-system
+  providesApis:
+    - oauth-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: session-manager
+  title: Session Manager
+  description: User session management
+  tags:
+    - go
+    - sessions
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: auth-system
+  dependsOn:
+    - resource:redis-cache
+
+# ============================================================================
+# COMPONENTS - API Gateway (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: gateway-core
+  title: Gateway Core
+  description: Main API gateway routing engine
+  tags:
+    - go
+    - gateway
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: api-gateway
+  dependsOn:
+    - component:rate-limiter
+    - component:auth-service
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rate-limiter
+  title: Rate Limiter
+  description: API rate limiting service
+  tags:
+    - rust
+    - performance
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: api-gateway
+  dependsOn:
+    - resource:redis-cache
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: api-docs
+  title: API Documentation
+  description: OpenAPI documentation portal
+  tags:
+    - documentation
+    - openapi
+spec:
+  type: website
+  lifecycle: production
+  owner: group:platform-team
+  system: api-gateway
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: request-transformer
+  title: Request Transformer
+  description: Request/response transformation middleware
+  tags:
+    - go
+    - middleware
+spec:
+  type: library
+  lifecycle: production
+  owner: group:platform-team
+  system: api-gateway
+
+# ============================================================================
+# COMPONENTS - Messaging System (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: message-broker
+  title: Message Broker
+  description: Central message broker service
+  tags:
+    - kafka
+    - messaging
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: messaging-system
+  dependsOn:
+    - resource:kafka-cluster
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: event-router
+  title: Event Router
+  description: Event routing and filtering
+  tags:
+    - go
+    - events
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: messaging-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dead-letter-processor
+  title: Dead Letter Processor
+  description: Failed message handling
+  tags:
+    - java
+    - reliability
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: messaging-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: message-sdk
+  title: Message SDK
+  description: Client SDK for messaging
+  tags:
+    - typescript
+    - sdk
+spec:
+  type: library
+  lifecycle: production
+  owner: group:platform-team
+  system: messaging-system
+
+# ============================================================================
+# COMPONENTS - Payments System (6)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: payment-gateway
+  title: Payment Gateway
+  description: Payment processing gateway
+  tags:
+    - java
+    - pci
+spec:
+  type: service
+  lifecycle: production
+  owner: group:payments-squad
+  system: payments-system
+  providesApis:
+    - payments-api
+  dependsOn:
+    - resource:payments-db
+    - component:fraud-detector
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: fraud-detector
+  title: Fraud Detector
+  description: Real-time fraud detection
+  tags:
+    - python
+    - ml
+spec:
+  type: service
+  lifecycle: production
+  owner: group:payments-squad
+  system: payments-system
+  dependsOn:
+    - component:ml-model-server
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: stripe-integration
+  title: Stripe Integration
+  description: Stripe payment provider integration
+  tags:
+    - nodejs
+    - stripe
+spec:
+  type: service
+  lifecycle: production
+  owner: group:payments-squad
+  system: payments-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: paypal-integration
+  title: PayPal Integration
+  description: PayPal payment provider integration
+  tags:
+    - nodejs
+    - paypal
+spec:
+  type: service
+  lifecycle: production
+  owner: group:payments-squad
+  system: payments-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: refund-processor
+  title: Refund Processor
+  description: Payment refund processing
+  tags:
+    - java
+    - finance
+spec:
+  type: service
+  lifecycle: production
+  owner: group:payments-squad
+  system: payments-system
+  consumesApis:
+    - payments-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: payment-reconciliation
+  title: Payment Reconciliation
+  description: Payment reconciliation service
+  tags:
+    - python
+    - finance
+spec:
+  type: service
+  lifecycle: production
+  owner: group:payments-squad
+  system: payments-system
+
+# ============================================================================
+# COMPONENTS - Orders System (5)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: order-service
+  title: Order Service
+  description: Core order management service
+  tags:
+    - java
+    - spring
+spec:
+  type: service
+  lifecycle: production
+  owner: group:orders-squad
+  system: orders-system
+  providesApis:
+    - orders-api
+  dependsOn:
+    - resource:orders-db
+    - component:payment-gateway
+    - component:inventory-service
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: cart-service
+  title: Cart Service
+  description: Shopping cart management
+  tags:
+    - nodejs
+    - redis
+spec:
+  type: service
+  lifecycle: production
+  owner: group:orders-squad
+  system: orders-system
+  dependsOn:
+    - resource:redis-cache
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: checkout-flow
+  title: Checkout Flow
+  description: Checkout orchestration service
+  tags:
+    - java
+    - workflow
+spec:
+  type: service
+  lifecycle: production
+  owner: group:orders-squad
+  system: orders-system
+  consumesApis:
+    - payments-api
+    - inventory-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: fulfillment-service
+  title: Fulfillment Service
+  description: Order fulfillment coordination
+  tags:
+    - go
+    - logistics
+spec:
+  type: service
+  lifecycle: production
+  owner: group:orders-squad
+  system: orders-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: order-history
+  title: Order History
+  description: Order history and tracking
+  tags:
+    - nodejs
+    - elasticsearch
+spec:
+  type: service
+  lifecycle: production
+  owner: group:orders-squad
+  system: orders-system
+  dependsOn:
+    - resource:elasticsearch-cluster
+
+# ============================================================================
+# COMPONENTS - Inventory System (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: inventory-service
+  title: Inventory Service
+  description: Inventory management service
+  tags:
+    - java
+    - spring
+spec:
+  type: service
+  lifecycle: production
+  owner: group:commerce-team
+  system: inventory-system
+  providesApis:
+    - inventory-api
+  dependsOn:
+    - resource:inventory-db
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: stock-updater
+  title: Stock Updater
+  description: Real-time stock level updates
+  tags:
+    - go
+    - realtime
+spec:
+  type: service
+  lifecycle: production
+  owner: group:commerce-team
+  system: inventory-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: warehouse-sync
+  title: Warehouse Sync
+  description: Warehouse inventory synchronization
+  tags:
+    - python
+    - integration
+spec:
+  type: service
+  lifecycle: production
+  owner: group:commerce-team
+  system: inventory-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: product-catalog
+  title: Product Catalog
+  description: Product catalog management
+  tags:
+    - nodejs
+    - mongodb
+spec:
+  type: service
+  lifecycle: production
+  owner: group:commerce-team
+  system: inventory-system
+  dependsOn:
+    - resource:mongodb-cluster
+
+# ============================================================================
+# COMPONENTS - Web App System (5)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: web-frontend
+  title: Web Frontend
+  description: Main customer web application
+  tags:
+    - react
+    - nextjs
+spec:
+  type: website
+  lifecycle: production
+  owner: group:web-squad
+  system: web-app-system
+  consumesApis:
+    - orders-api
+    - inventory-api
+    - auth-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: web-bff
+  title: Web BFF
+  description: Backend-for-frontend for web
+  tags:
+    - nodejs
+    - graphql
+spec:
+  type: service
+  lifecycle: production
+  owner: group:web-squad
+  system: web-app-system
+  providesApis:
+    - web-graphql-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: design-system
+  title: Design System
+  description: Shared UI component library
+  tags:
+    - react
+    - storybook
+spec:
+  type: library
+  lifecycle: production
+  owner: group:web-squad
+  system: web-app-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: web-analytics
+  title: Web Analytics
+  description: Frontend analytics integration
+  tags:
+    - typescript
+    - analytics
+spec:
+  type: library
+  lifecycle: production
+  owner: group:web-squad
+  system: web-app-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: seo-service
+  title: SEO Service
+  description: SEO optimization service
+  tags:
+    - nodejs
+    - seo
+spec:
+  type: service
+  lifecycle: production
+  owner: group:web-squad
+  system: web-app-system
+
+# ============================================================================
+# COMPONENTS - Mobile App System (5)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ios-app
+  title: iOS App
+  description: Native iOS application
+  tags:
+    - swift
+    - ios
+spec:
+  type: mobile-app
+  lifecycle: production
+  owner: group:mobile-squad
+  system: mobile-app-system
+  consumesApis:
+    - mobile-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: android-app
+  title: Android App
+  description: Native Android application
+  tags:
+    - kotlin
+    - android
+spec:
+  type: mobile-app
+  lifecycle: production
+  owner: group:mobile-squad
+  system: mobile-app-system
+  consumesApis:
+    - mobile-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: mobile-bff
+  title: Mobile BFF
+  description: Backend-for-frontend for mobile
+  tags:
+    - go
+    - rest
+spec:
+  type: service
+  lifecycle: production
+  owner: group:mobile-squad
+  system: mobile-app-system
+  providesApis:
+    - mobile-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: push-notification-sdk
+  title: Push Notification SDK
+  description: Mobile push notification SDK
+  tags:
+    - kotlin
+    - swift
+spec:
+  type: library
+  lifecycle: production
+  owner: group:mobile-squad
+  system: mobile-app-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: mobile-crash-reporter
+  title: Mobile Crash Reporter
+  description: Mobile crash reporting
+  tags:
+    - kotlin
+    - swift
+spec:
+  type: library
+  lifecycle: production
+  owner: group:mobile-squad
+  system: mobile-app-system
+
+# ============================================================================
+# COMPONENTS - Notifications System (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: notification-service
+  title: Notification Service
+  description: Central notification dispatch
+  tags:
+    - go
+    - notifications
+spec:
+  type: service
+  lifecycle: production
+  owner: group:customer-team
+  system: notifications-system
+  providesApis:
+    - notifications-api
+  dependsOn:
+    - resource:notifications-db
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: email-sender
+  title: Email Sender
+  description: Email delivery service
+  tags:
+    - python
+    - sendgrid
+spec:
+  type: service
+  lifecycle: production
+  owner: group:customer-team
+  system: notifications-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: sms-sender
+  title: SMS Sender
+  description: SMS delivery service
+  tags:
+    - python
+    - twilio
+spec:
+  type: service
+  lifecycle: production
+  owner: group:customer-team
+  system: notifications-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: template-engine
+  title: Template Engine
+  description: Notification template management
+  tags:
+    - nodejs
+    - handlebars
+spec:
+  type: service
+  lifecycle: production
+  owner: group:customer-team
+  system: notifications-system
+
+# ============================================================================
+# COMPONENTS - Data Warehouse (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: etl-pipeline
+  title: ETL Pipeline
+  description: Data extraction and transformation
+  tags:
+    - python
+    - airflow
+spec:
+  type: service
+  lifecycle: production
+  owner: group:data-team
+  system: data-warehouse
+  dependsOn:
+    - resource:snowflake-warehouse
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: data-quality-checker
+  title: Data Quality Checker
+  description: Data quality validation
+  tags:
+    - python
+    - great-expectations
+spec:
+  type: service
+  lifecycle: production
+  owner: group:data-team
+  system: data-warehouse
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dbt-models
+  title: DBT Models
+  description: Data transformation models
+  tags:
+    - dbt
+    - sql
+spec:
+  type: library
+  lifecycle: production
+  owner: group:data-team
+  system: data-warehouse
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: data-catalog
+  title: Data Catalog
+  description: Data discovery and cataloging
+  tags:
+    - python
+    - metadata
+spec:
+  type: service
+  lifecycle: production
+  owner: group:data-team
+  system: data-warehouse
+
+# ============================================================================
+# COMPONENTS - ML Platform (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ml-model-server
+  title: ML Model Server
+  description: Model serving infrastructure
+  tags:
+    - python
+    - mlflow
+spec:
+  type: service
+  lifecycle: production
+  owner: group:data-team
+  system: ml-platform
+  providesApis:
+    - ml-predictions-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: feature-store
+  title: Feature Store
+  description: ML feature management
+  tags:
+    - python
+    - feast
+spec:
+  type: service
+  lifecycle: production
+  owner: group:data-team
+  system: ml-platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: model-registry
+  title: Model Registry
+  description: ML model versioning and registry
+  tags:
+    - python
+    - mlflow
+spec:
+  type: service
+  lifecycle: production
+  owner: group:data-team
+  system: ml-platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: training-pipeline
+  title: Training Pipeline
+  description: Model training orchestration
+  tags:
+    - python
+    - kubeflow
+spec:
+  type: service
+  lifecycle: production
+  owner: group:data-team
+  system: ml-platform
+
+# ============================================================================
+# COMPONENTS - CI/CD System (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: build-service
+  title: Build Service
+  description: Build orchestration service
+  tags:
+    - go
+    - tekton
+spec:
+  type: service
+  lifecycle: production
+  owner: group:devex-team
+  system: ci-cd-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: artifact-registry
+  title: Artifact Registry
+  description: Container and artifact storage
+  tags:
+    - docker
+    - oci
+spec:
+  type: service
+  lifecycle: production
+  owner: group:devex-team
+  system: ci-cd-system
+  dependsOn:
+    - resource:artifact-storage
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: deployment-controller
+  title: Deployment Controller
+  description: Kubernetes deployment automation
+  tags:
+    - go
+    - argocd
+spec:
+  type: service
+  lifecycle: production
+  owner: group:devex-team
+  system: ci-cd-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: pipeline-templates
+  title: Pipeline Templates
+  description: Reusable CI/CD templates
+  tags:
+    - yaml
+    - tekton
+spec:
+  type: library
+  lifecycle: production
+  owner: group:devex-team
+  system: ci-cd-system
+
+# ============================================================================
+# COMPONENTS - Monitoring System (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: metrics-collector
+  title: Metrics Collector
+  description: Prometheus metrics collection
+  tags:
+    - prometheus
+    - monitoring
+spec:
+  type: service
+  lifecycle: production
+  owner: group:sre-team
+  system: monitoring-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: log-aggregator
+  title: Log Aggregator
+  description: Centralized log aggregation
+  tags:
+    - elasticsearch
+    - fluentd
+spec:
+  type: service
+  lifecycle: production
+  owner: group:sre-team
+  system: monitoring-system
+  dependsOn:
+    - resource:elasticsearch-cluster
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: alerting-engine
+  title: Alerting Engine
+  description: Alert management and routing
+  tags:
+    - go
+    - alertmanager
+spec:
+  type: service
+  lifecycle: production
+  owner: group:sre-team
+  system: monitoring-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: observability-dashboard
+  title: Observability Dashboard
+  description: Grafana dashboards
+  tags:
+    - grafana
+    - visualization
+spec:
+  type: website
+  lifecycle: production
+  owner: group:sre-team
+  system: monitoring-system
+
+# ============================================================================
+# COMPONENTS - Deprecated/Experimental (4)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: legacy-auth
+  title: Legacy Auth Service
+  description: Deprecated authentication service
+  tags:
+    - deprecated
+    - java
+spec:
+  type: service
+  lifecycle: deprecated
+  owner: group:platform-team
+  system: auth-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: new-checkout-v2
+  title: New Checkout V2
+  description: Experimental new checkout flow
+  tags:
+    - experimental
+    - rust
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:orders-squad
+  system: orders-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ai-recommendations
+  title: AI Recommendations
+  description: Experimental AI product recommendations
+  tags:
+    - experimental
+    - python
+    - ml
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:data-team
+  system: ml-platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: voice-assistant
+  title: Voice Assistant
+  description: Experimental voice interface
+  tags:
+    - experimental
+    - python
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:customer-team
+  system: support-system
+
+# ============================================================================
+# APIS (20)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: auth-api
+  title: Auth API
+  description: Authentication and authorization API
+  tags:
+    - rest
+    - oauth
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:platform-team
+  system: auth-system
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Auth API
+      version: 1.0.0
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: oauth-api
+  title: OAuth API
+  description: OAuth2 authorization endpoints
+  tags:
+    - oauth
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:platform-team
+  system: auth-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: payments-api
+  title: Payments API
+  description: Payment processing API
+  tags:
+    - rest
+    - pci
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:payments-squad
+  system: payments-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: orders-api
+  title: Orders API
+  description: Order management API
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:orders-squad
+  system: orders-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: inventory-api
+  title: Inventory API
+  description: Inventory management API
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:commerce-team
+  system: inventory-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: web-graphql-api
+  title: Web GraphQL API
+  description: GraphQL API for web frontend
+  tags:
+    - graphql
+spec:
+  type: graphql
+  lifecycle: production
+  owner: group:web-squad
+  system: web-app-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: mobile-api
+  title: Mobile API
+  description: REST API for mobile apps
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:mobile-squad
+  system: mobile-app-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: notifications-api
+  title: Notifications API
+  description: Notification delivery API
+  tags:
+    - rest
+    - async
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:customer-team
+  system: notifications-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ml-predictions-api
+  title: ML Predictions API
+  description: Machine learning predictions API
+  tags:
+    - rest
+    - ml
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:data-team
+  system: ml-platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: events-api
+  title: Events API
+  description: Async event streaming API
+  tags:
+    - async
+    - kafka
+spec:
+  type: asyncapi
+  lifecycle: production
+  owner: group:platform-team
+  system: messaging-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: internal-gateway-api
+  title: Internal Gateway API
+  description: Internal service mesh API
+  tags:
+    - grpc
+    - internal
+spec:
+  type: grpc
+  lifecycle: production
+  owner: group:platform-team
+  system: api-gateway
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: reporting-api
+  title: Reporting API
+  description: Business reporting API
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:data-team
+  system: reporting-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: admin-api
+  title: Admin API
+  description: Internal administration API
+  tags:
+    - rest
+    - internal
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:devex-team
+  system: admin-tools
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: search-api
+  title: Search API
+  description: Product search API
+  tags:
+    - rest
+    - elasticsearch
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:commerce-team
+  system: inventory-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: pricing-api
+  title: Pricing API
+  description: Dynamic pricing API
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:commerce-team
+  system: pricing-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: support-api
+  title: Support API
+  description: Customer support ticketing API
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:customer-team
+  system: support-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: webhooks-api
+  title: Webhooks API
+  description: Webhook delivery API
+  tags:
+    - webhooks
+    - async
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:platform-team
+  system: messaging-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: config-api
+  title: Config API
+  description: Configuration management API
+  tags:
+    - rest
+    - internal
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:platform-team
+  system: config-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: metrics-api
+  title: Metrics API
+  description: Metrics query API
+  tags:
+    - prometheus
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:sre-team
+  system: monitoring-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: deprecated-v1-api
+  title: Deprecated V1 API
+  description: Legacy API v1 - to be removed
+  tags:
+    - deprecated
+spec:
+  type: openapi
+  lifecycle: deprecated
+  owner: group:platform-team
+  system: api-gateway
+
+# ============================================================================
+# RESOURCES (20)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: users-db
+  title: Users Database
+  description: PostgreSQL database for user data
+  tags:
+    - postgresql
+    - database
+spec:
+  type: database
+  owner: group:platform-team
+  system: auth-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: redis-cache
+  title: Redis Cache
+  description: Redis cluster for caching
+  tags:
+    - redis
+    - cache
+spec:
+  type: cache
+  owner: group:platform-team
+  system: api-gateway
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: kafka-cluster
+  title: Kafka Cluster
+  description: Apache Kafka cluster
+  tags:
+    - kafka
+    - messaging
+spec:
+  type: message-queue
+  owner: group:platform-team
+  system: messaging-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: payments-db
+  title: Payments Database
+  description: PostgreSQL database for payments
+  tags:
+    - postgresql
+    - pci
+spec:
+  type: database
+  owner: group:payments-squad
+  system: payments-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: orders-db
+  title: Orders Database
+  description: PostgreSQL database for orders
+  tags:
+    - postgresql
+spec:
+  type: database
+  owner: group:orders-squad
+  system: orders-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: inventory-db
+  title: Inventory Database
+  description: PostgreSQL database for inventory
+  tags:
+    - postgresql
+spec:
+  type: database
+  owner: group:commerce-team
+  system: inventory-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: mongodb-cluster
+  title: MongoDB Cluster
+  description: MongoDB cluster for product catalog
+  tags:
+    - mongodb
+    - nosql
+spec:
+  type: database
+  owner: group:commerce-team
+  system: inventory-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: elasticsearch-cluster
+  title: Elasticsearch Cluster
+  description: Elasticsearch for search and logs
+  tags:
+    - elasticsearch
+    - search
+spec:
+  type: search-engine
+  owner: group:sre-team
+  system: monitoring-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: notifications-db
+  title: Notifications Database
+  description: PostgreSQL for notification history
+  tags:
+    - postgresql
+spec:
+  type: database
+  owner: group:customer-team
+  system: notifications-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: snowflake-warehouse
+  title: Snowflake Warehouse
+  description: Snowflake data warehouse
+  tags:
+    - snowflake
+    - warehouse
+spec:
+  type: database
+  owner: group:data-team
+  system: data-warehouse
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: artifact-storage
+  title: Artifact Storage
+  description: S3 bucket for build artifacts
+  tags:
+    - s3
+    - storage
+spec:
+  type: storage
+  owner: group:devex-team
+  system: ci-cd-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: cdn-bucket
+  title: CDN Storage
+  description: S3 bucket for static assets
+  tags:
+    - s3
+    - cdn
+spec:
+  type: storage
+  owner: group:web-squad
+  system: web-app-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ml-models-storage
+  title: ML Models Storage
+  description: S3 bucket for ML models
+  tags:
+    - s3
+    - ml
+spec:
+  type: storage
+  owner: group:data-team
+  system: ml-platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: logs-bucket
+  title: Logs Storage
+  description: S3 bucket for log archives
+  tags:
+    - s3
+    - logs
+spec:
+  type: storage
+  owner: group:sre-team
+  system: monitoring-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: vault-secrets
+  title: Vault Secrets
+  description: HashiCorp Vault for secrets
+  tags:
+    - vault
+    - security
+spec:
+  type: secrets
+  owner: group:security-team
+  system: config-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: k8s-cluster-prod
+  title: Production Kubernetes
+  description: Production Kubernetes cluster
+  tags:
+    - kubernetes
+    - production
+spec:
+  type: kubernetes
+  owner: group:sre-team
+  system: ci-cd-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: k8s-cluster-staging
+  title: Staging Kubernetes
+  description: Staging Kubernetes cluster
+  tags:
+    - kubernetes
+    - staging
+spec:
+  type: kubernetes
+  owner: group:sre-team
+  system: ci-cd-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: support-db
+  title: Support Database
+  description: PostgreSQL for support tickets
+  tags:
+    - postgresql
+spec:
+  type: database
+  owner: group:customer-team
+  system: support-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: reporting-db
+  title: Reporting Database
+  description: PostgreSQL for reports
+  tags:
+    - postgresql
+spec:
+  type: database
+  owner: group:data-team
+  system: reporting-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: timeseries-db
+  title: Time Series Database
+  description: InfluxDB for metrics
+  tags:
+    - influxdb
+    - metrics
+spec:
+  type: database
+  owner: group:sre-team
+  system: monitoring-system
+
+# ============================================================================
+# LOCATIONS (5)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: github-platform
+  title: Platform GitHub Org
+  description: Platform team repositories
+spec:
+  type: github-org
+  targets:
+    - https://github.com/acme-platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: github-commerce
+  title: Commerce GitHub Org
+  description: Commerce team repositories
+spec:
+  type: github-org
+  targets:
+    - https://github.com/acme-commerce
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: github-customer
+  title: Customer GitHub Org
+  description: Customer team repositories
+spec:
+  type: github-org
+  targets:
+    - https://github.com/acme-customer
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: artifactory-releases
+  title: Artifactory Releases
+  description: Production artifact repository
+spec:
+  type: artifactory
+  targets:
+    - https://artifactory.acme.com/releases
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: s3-templates
+  title: S3 Templates
+  description: Template storage location
+spec:
+  type: s3
+  targets:
+    - s3://acme-templates
+
+# ============================================================================
+# ORPHANED ENTITIES (for testing error states)
+# ============================================================================
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: orphaned-service
+  title: Orphaned Service
+  description: Service with missing system reference
+  tags:
+    - orphan
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform-team
+  system: non-existent-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: missing-owner-service
+  title: Missing Owner Service
+  description: Service with missing owner reference
+  tags:
+    - orphan
+spec:
+  type: service
+  lifecycle: production
+  owner: non-existent-team
+  system: auth-system
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: orphaned-system
+  title: Orphaned System
+  description: System with missing domain reference
+  tags:
+    - orphan
+spec:
+  owner: group:platform-team
+  domain: non-existent-domain
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: unknown-kind-ref
+  title: Unknown Kind Reference
+  description: Component referencing unknown entity kind
+  tags:
+    - error
+spec:
+  type: service
+  lifecycle: production
+  owner: spaceship:enterprise
+  system: auth-system

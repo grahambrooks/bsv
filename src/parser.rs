@@ -52,6 +52,12 @@ fn parse_multi_document_yaml(content: &str, source_path: &Path) -> Result<Vec<En
 }
 
 pub fn load_all_entities(root: &Path) -> Result<Vec<EntityWithSource>> {
+    // If path is a file, load just that file
+    if root.is_file() {
+        return parse_catalog_file(root);
+    }
+
+    // Otherwise, discover catalog files in directory
     let catalog_files = discover_catalog_files(root);
     let mut all_entities = Vec::new();
 
