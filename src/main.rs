@@ -1,5 +1,6 @@
 mod app;
 mod entity;
+mod graph;
 mod parser;
 mod tree;
 mod ui;
@@ -124,6 +125,9 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
                         }
                         KeyCode::Char('r') => {
                             app.reload();
+                        }
+                        KeyCode::Char('g') => {
+                            app.toggle_graph();
                         }
                         _ => {}
                     }

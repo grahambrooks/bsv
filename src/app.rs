@@ -1,4 +1,5 @@
 use crate::entity::{EntityIndex, EntityWithSource};
+use crate::graph::RelationshipGraph;
 use crate::parser::load_all_entities;
 use crate::tree::{EntityTree, TreeNode, TreeState};
 use anyhow::Result;
@@ -12,6 +13,8 @@ pub struct App {
     pub search_query: String,
     pub search_active: bool,
     pub entity_index: EntityIndex,
+    pub entities: Vec<EntityWithSource>,
+    pub show_graph: bool,
     root_path: PathBuf,
 }
 
@@ -20,7 +23,7 @@ impl App {
         let entities = load_all_entities(root)?;
         let entity_count = entities.len();
         let entity_index = EntityIndex::build(&entities);
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(entities.clone());
 
         let mut tree_state = TreeState::new();
         // Expand root categories by default
@@ -36,6 +39,8 @@ impl App {
             search_query: String::new(),
             search_active: false,
             entity_index,
+            entities,
+            show_graph: false,
             root_path: root.to_path_buf(),
         })
     }
@@ -44,7 +49,8 @@ impl App {
         if let Ok(entities) = load_all_entities(&self.root_path) {
             self.entity_count = entities.len();
             self.entity_index = EntityIndex::build(&entities);
-            self.tree = EntityTree::build(entities);
+            self.tree = EntityTree::build(entities.clone());
+            self.entities = entities;
             self.tree_state = TreeState::new();
             // Expand root categories by default
             for &root_id in &self.tree.root_children {
@@ -52,7 +58,17 @@ impl App {
             }
             self.search_query.clear();
             self.search_active = false;
+            self.show_graph = false;
         }
+    }
+
+    pub fn toggle_graph(&mut self) {
+        self.show_graph = !self.show_graph;
+    }
+
+    pub fn get_relationship_graph(&self) -> Option<RelationshipGraph> {
+        self.selected_entity()
+            .map(|e| RelationshipGraph::build(e, &self.entities))
     }
 
     pub fn visible_nodes(&self) -> Vec<&TreeNode> {

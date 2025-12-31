@@ -1,5 +1,6 @@
 use crate::app::App;
 use crate::entity::{EntityIndex, EntityRef, EntityWithSource};
+use crate::graph::{RelationType, RelationshipGraph};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -15,7 +16,12 @@ pub fn draw(frame: &mut Frame, app: &App) {
         .split(frame.area());
 
     draw_tree(frame, app, chunks[0]);
-    draw_details(frame, app, chunks[1]);
+
+    if app.show_graph {
+        draw_graph(frame, app, chunks[1]);
+    } else {
+        draw_details(frame, app, chunks[1]);
+    }
 }
 
 fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
@@ -327,11 +333,152 @@ fn format_entity_ref(
     spans
 }
 
+fn draw_graph(frame: &mut Frame, app: &App, area: Rect) {
+    let block = Block::default()
+        .title(" Relationships (g to toggle) ")
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Magenta));
+
+    if let Some(graph) = app.get_relationship_graph() {
+        let content = format_graph(&graph);
+        let paragraph = Paragraph::new(content)
+            .block(block)
+            .wrap(Wrap { trim: false });
+        frame.render_widget(paragraph, area);
+    } else {
+        let paragraph = Paragraph::new("Select an entity to view relationships")
+            .block(block)
+            .style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(paragraph, area);
+    }
+}
+
+fn format_graph(graph: &RelationshipGraph) -> Vec<Line<'static>> {
+    let mut lines = Vec::new();
+
+    // Center entity
+    lines.push(Line::from(vec![
+        Span::styled("◉ ", Style::default().fg(Color::Cyan)),
+        Span::styled(
+            format!("[{}] ", graph.center.kind),
+            Style::default().fg(Color::DarkGray),
+        ),
+        Span::styled(
+            graph.center.display_name.clone(),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
+    ]));
+
+    lines.push(Line::from(""));
+
+    // Outgoing relationships
+    if !graph.outgoing.is_empty() {
+        lines.push(Line::from(Span::styled(
+            "─── Outgoing ───────────────────",
+            Style::default().fg(Color::Green),
+        )));
+
+        // Group by relationship type
+        let mut by_type: std::collections::HashMap<&str, Vec<_>> = std::collections::HashMap::new();
+        for (rel_type, node) in &graph.outgoing {
+            by_type.entry(rel_type.label()).or_default().push(node);
+        }
+
+        for (label, nodes) in by_type {
+            for node in nodes {
+                let (icon, color) = if node.exists {
+                    ("→", Color::Green)
+                } else {
+                    ("⚠", Color::Yellow)
+                };
+
+                lines.push(Line::from(vec![
+                    Span::styled(format!("  {} ", icon), Style::default().fg(color)),
+                    Span::styled(format!("{}: ", label), Style::default().fg(Color::DarkGray)),
+                    Span::styled(
+                        format!("[{}] ", node.kind),
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                    Span::styled(node.display_name.clone(), Style::default().fg(color)),
+                    if !node.exists {
+                        Span::styled(" (not found)", Style::default().fg(Color::Red))
+                    } else {
+                        Span::raw("")
+                    },
+                ]));
+            }
+        }
+    }
+
+    // Incoming relationships
+    if !graph.incoming.is_empty() {
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            "─── Incoming ───────────────────",
+            Style::default().fg(Color::Blue),
+        )));
+
+        // Group by relationship type
+        let mut by_type: std::collections::HashMap<&str, Vec<_>> = std::collections::HashMap::new();
+        for (rel_type, node) in &graph.incoming {
+            by_type
+                .entry(inverse_label(rel_type))
+                .or_default()
+                .push(node);
+        }
+
+        for (label, nodes) in by_type {
+            for node in nodes {
+                lines.push(Line::from(vec![
+                    Span::styled("  ← ", Style::default().fg(Color::Blue)),
+                    Span::styled(format!("{}: ", label), Style::default().fg(Color::DarkGray)),
+                    Span::styled(
+                        format!("[{}] ", node.kind),
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                    Span::styled(node.display_name.clone(), Style::default().fg(Color::Blue)),
+                ]));
+            }
+        }
+    }
+
+    // Summary
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![Span::styled(
+        format!(
+            "Total: {} outgoing, {} incoming",
+            graph.outgoing.len(),
+            graph.incoming.len()
+        ),
+        Style::default().fg(Color::DarkGray),
+    )]));
+
+    lines
+}
+
+fn inverse_label(rel_type: &RelationType) -> &'static str {
+    match rel_type {
+        RelationType::Owner => "owns",
+        RelationType::System => "contains",
+        RelationType::Domain => "contains",
+        RelationType::Child => "child of",
+        RelationType::DependencyOf => "depended on by",
+        RelationType::ConsumedBy => "consumed by",
+        RelationType::ProvidedBy => "provides",
+        RelationType::HasMember => "member",
+        _ => rel_type.label(),
+    }
+}
+
 pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
     let help_text = if app.search_active {
         " Enter: Confirm | Esc: Cancel | Type to search... "
+    } else if app.show_graph {
+        " q: Quit | g: Details | /: Search | r: Reload | ↑↓: Navigate "
     } else {
-        " q: Quit | /: Search | r: Reload | ↑↓: Navigate | ←→: Expand/Collapse "
+        " q: Quit | g: Graph | /: Search | r: Reload | ↑↓: Navigate | ←→: Expand/Collapse "
     };
     let help = Paragraph::new(help_text)
         .style(Style::default().fg(Color::DarkGray))
