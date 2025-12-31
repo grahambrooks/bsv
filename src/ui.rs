@@ -250,6 +250,7 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex) -> Vec<Lin
 }
 
 /// Format an entity reference with resolved kind/namespace and validation
+/// Explicit parts shown in bright colors, inferred parts shown dim in [brackets]
 fn format_entity_ref(
     reference: &str,
     default_kind: &str,
@@ -262,46 +263,56 @@ fn format_entity_ref(
     let exists = index.contains(&entity_ref);
     let known_kind = entity_ref.is_known_kind();
 
-    if !known_kind {
-        // Unknown kind - show error
-        spans.push(Span::styled(
-            entity_ref.canonical(),
-            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-        ));
-        spans.push(Span::styled(
-            " [unknown kind]",
-            Style::default().fg(Color::Red),
-        ));
+    // Determine base color based on validation status
+    let (explicit_color, inferred_color, error_suffix) = if !known_kind {
+        (Color::Red, Color::DarkGray, Some(" [unknown kind]"))
     } else if !exists {
-        // Reference doesn't exist - show warning
+        (Color::Yellow, Color::DarkGray, Some(" [not found]"))
+    } else {
+        (Color::Green, Color::DarkGray, None)
+    };
+
+    // Format kind - show in brackets if inferred
+    if entity_ref.kind_inferred {
         spans.push(Span::styled(
-            entity_ref.canonical(),
-            Style::default().fg(Color::Yellow),
-        ));
-        spans.push(Span::styled(
-            " [not found]",
-            Style::default().fg(Color::Red),
+            format!("[{}]", entity_ref.kind),
+            Style::default().fg(inferred_color).add_modifier(Modifier::DIM),
         ));
     } else {
-        // Valid reference - show in green
         spans.push(Span::styled(
-            entity_ref.canonical(),
-            Style::default().fg(Color::Green),
+            entity_ref.kind.clone(),
+            Style::default().fg(explicit_color).add_modifier(Modifier::BOLD),
         ));
     }
 
-    // Show what was inferred
-    if entity_ref.kind_inferred || entity_ref.namespace_inferred {
-        let mut inferred = Vec::new();
-        if entity_ref.kind_inferred {
-            inferred.push("kind");
-        }
-        if entity_ref.namespace_inferred {
-            inferred.push("namespace");
-        }
+    spans.push(Span::styled(":", Style::default().fg(Color::DarkGray)));
+
+    // Format namespace - show in brackets if inferred
+    if entity_ref.namespace_inferred {
         spans.push(Span::styled(
-            format!(" ({})", inferred.join(", ")),
-            Style::default().fg(Color::DarkGray),
+            format!("[{}]", entity_ref.namespace),
+            Style::default().fg(inferred_color).add_modifier(Modifier::DIM),
+        ));
+    } else {
+        spans.push(Span::styled(
+            entity_ref.namespace.clone(),
+            Style::default().fg(explicit_color),
+        ));
+    }
+
+    spans.push(Span::styled("/", Style::default().fg(Color::DarkGray)));
+
+    // Name is always explicit
+    spans.push(Span::styled(
+        entity_ref.name.clone(),
+        Style::default().fg(explicit_color).add_modifier(Modifier::BOLD),
+    ));
+
+    // Add error suffix if needed
+    if let Some(suffix) = error_suffix {
+        spans.push(Span::styled(
+            suffix.to_string(),
+            Style::default().fg(Color::Red),
         ));
     }
 
