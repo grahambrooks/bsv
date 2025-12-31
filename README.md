@@ -4,6 +4,9 @@ A terminal UI application for exploring and visualizing [Backstage](https://back
 
 [![CI](https://github.com/grahambrooks/bsv/actions/workflows/ci.yml/badge.svg)](https://github.com/grahambrooks/bsv/actions/workflows/ci.yml)
 
+
+![bsv](docs/images/screenshot.png)
+
 ## Features
 
 - **Tree View**: Hierarchical visualization of entities organized by Domain → System → Component
