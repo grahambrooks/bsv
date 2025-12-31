@@ -1,0 +1,13 @@
+[package]
+name = "bsv"
+version = "0.1.0"
+edition = "2021"
+description = "Backstage Entity Visualizer - TUI for exploring catalog-info.yaml files"
+
+[dependencies]
+ratatui = "0.28"
+crossterm = "0.28"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+walkdir = "2.5"
+anyhow = "1.0"
