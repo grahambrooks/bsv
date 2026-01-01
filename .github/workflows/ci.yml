@@ -1,11 +1,13 @@
 name: CI
 
 permissions:
-  contents: read
+  contents: write
 
 on:
   push:
     branches: [main]
+    tags:
+      - 'v*'
   pull_request:
     branches: [main]
 
@@ -81,8 +83,26 @@ jobs:
       - name: Build release
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact }} dist/
+          cd dist
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            7z a ../bsv-${{ matrix.target }}.zip ${{ matrix.artifact }}
+          else
+            tar czf ../bsv-${{ matrix.target }}.tar.gz ${{ matrix.artifact }}
+          fi
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: bsv-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/${{ matrix.artifact }}
+          path: bsv-${{ matrix.target }}.*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bsv-${{ matrix.target }}.*
+          generate_release_notes: true
