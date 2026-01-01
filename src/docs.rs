@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 /// Documentation reference parsed from annotations
 #[derive(Debug, Clone)]
 pub struct DocsRef {
-    pub annotation_key: String,
     pub ref_type: DocsRefType,
     pub path: PathBuf,
 }
@@ -46,7 +45,6 @@ pub struct DocsBrowser {
 #[derive(Debug, Clone)]
 pub struct DocContent {
     pub file: DocFile,
-    pub content: String,
     pub lines: Vec<String>,
 }
 
@@ -108,7 +106,6 @@ impl DocsBrowser {
                 let lines: Vec<String> = content.lines().map(String::from).collect();
                 self.viewing_content = Some(DocContent {
                     file: file.clone(),
-                    content,
                     lines,
                 });
                 self.scroll_offset = 0;
@@ -136,7 +133,6 @@ pub fn parse_docs_refs(annotations: &HashMap<String, String>, source_file: &Path
         if key == "backstage.io/techdocs-ref" {
             if let Some(path) = parse_techdocs_ref(value, source_dir) {
                 refs.push(DocsRef {
-                    annotation_key: key.clone(),
                     ref_type: DocsRefType::TechDocs,
                     path,
                 });
@@ -148,7 +144,6 @@ pub fn parse_docs_refs(annotations: &HashMap<String, String>, source_file: &Path
             let path = resolve_relative_path(value, source_dir);
             if path.exists() {
                 refs.push(DocsRef {
-                    annotation_key: key.clone(),
                     ref_type: DocsRefType::Adr,
                     path,
                 });
