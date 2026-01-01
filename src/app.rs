@@ -1,3 +1,4 @@
+use crate::docs::{parse_docs_refs, DocsBrowser, DocsRef};
 use crate::entity::{EntityIndex, EntityWithSource};
 use crate::graph::RelationshipGraph;
 use crate::parser::load_all_entities;
@@ -15,6 +16,7 @@ pub struct App {
     pub entity_index: EntityIndex,
     pub entities: Vec<EntityWithSource>,
     pub show_graph: bool,
+    pub docs_browser: Option<DocsBrowser>,
     root_path: PathBuf,
 }
 
@@ -41,6 +43,7 @@ impl App {
             entity_index,
             entities,
             show_graph: false,
+            docs_browser: None,
             root_path: root.to_path_buf(),
         })
     }
@@ -59,11 +62,43 @@ impl App {
             self.search_query.clear();
             self.search_active = false;
             self.show_graph = false;
+            self.docs_browser = None;
         }
     }
 
     pub fn toggle_graph(&mut self) {
         self.show_graph = !self.show_graph;
+    }
+
+    /// Check if the current entity has documentation references
+    pub fn get_docs_refs(&self) -> Vec<DocsRef> {
+        self.selected_entity()
+            .map(|e| parse_docs_refs(&e.entity.metadata.annotations, &e.source_file))
+            .unwrap_or_default()
+    }
+
+    /// Open the documentation browser for the selected entity
+    pub fn open_docs(&mut self) {
+        let refs = self.get_docs_refs();
+        if let Some(docs_ref) = refs.into_iter().next() {
+            self.docs_browser = Some(DocsBrowser::new(docs_ref));
+        }
+    }
+
+    /// Close the documentation browser
+    pub fn close_docs(&mut self) {
+        if let Some(browser) = &mut self.docs_browser {
+            if browser.is_viewing_content() {
+                browser.close_content();
+            } else {
+                self.docs_browser = None;
+            }
+        }
+    }
+
+    /// Check if docs browser is active
+    pub fn is_docs_active(&self) -> bool {
+        self.docs_browser.is_some()
     }
 
     pub fn get_relationship_graph(&self) -> Option<RelationshipGraph> {

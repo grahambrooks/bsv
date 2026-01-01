@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Links display in entity details panel
+- Annotations display with special highlighting for documentation-related annotations
+- Documentation browser for TechDocs and ADR markdown files
+  - Support for `backstage.io/techdocs-ref` annotation
+  - Support for `backstage.io/adr-location` annotation
+  - Basic markdown syntax highlighting
+  - Scrollable document viewing
+- Press `d` to open documentation browser when docs annotations are present
+
 ## [0.1.0] - 2024-01-01
 
 ### Added

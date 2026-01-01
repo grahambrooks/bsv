@@ -1,4 +1,5 @@
 use crate::app::App;
+use crate::docs::DocsBrowser;
 use crate::entity::{EntityIndex, EntityRef, EntityWithSource};
 use crate::graph::{RelationType, RelationshipGraph};
 use ratatui::{
@@ -10,6 +11,12 @@ use ratatui::{
 };
 
 pub fn draw(frame: &mut Frame, app: &App) {
+    // If docs browser is active, show full-screen docs view
+    if let Some(docs_browser) = &app.docs_browser {
+        draw_docs_browser(frame, docs_browser, frame.area());
+        return;
+    }
+
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
@@ -242,6 +249,70 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex) -> Vec<Lin
         lines.push(Line::from(entity.metadata.tags.join(", ")));
     }
 
+    // Links
+    if !entity.metadata.links.is_empty() {
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            "Links:",
+            Style::default().fg(Color::Yellow),
+        )));
+        for link in &entity.metadata.links {
+            let title = link
+                .title
+                .as_deref()
+                .or(link.url.as_deref())
+                .unwrap_or("(untitled)");
+            let url = link.url.as_deref().unwrap_or("");
+            let icon = link
+                .icon
+                .as_ref()
+                .map(|i| format!("[{}] ", i))
+                .unwrap_or_default();
+            lines.push(Line::from(vec![
+                Span::styled(format!("  {}", icon), Style::default().fg(Color::DarkGray)),
+                Span::styled(title.to_string(), Style::default().fg(Color::Cyan)),
+                Span::styled(format!(" ({})", url), Style::default().fg(Color::DarkGray)),
+            ]));
+        }
+    }
+
+    // Annotations (with special highlighting for docs-related ones)
+    if !entity.metadata.annotations.is_empty() {
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            "Annotations:",
+            Style::default().fg(Color::Yellow),
+        )));
+
+        let mut sorted_annotations: Vec<_> = entity.metadata.annotations.iter().collect();
+        sorted_annotations.sort_by_key(|(k, _)| *k);
+
+        for (key, value) in sorted_annotations {
+            let is_docs_annotation = key.contains("techdocs") || key.contains("adr");
+            let key_style = if is_docs_annotation {
+                Style::default().fg(Color::Magenta)
+            } else {
+                Style::default().fg(Color::DarkGray)
+            };
+            let value_style = if is_docs_annotation {
+                Style::default().fg(Color::Magenta)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            let doc_hint = if is_docs_annotation {
+                Span::styled(" [d to view]", Style::default().fg(Color::Green))
+            } else {
+                Span::raw("")
+            };
+
+            lines.push(Line::from(vec![
+                Span::styled(format!("  {}: ", key), key_style),
+                Span::styled(value.clone(), value_style),
+                doc_hint,
+            ]));
+        }
+    }
+
     // Source file
     lines.push(Line::from(""));
     lines.push(Line::from(vec![
@@ -472,13 +543,228 @@ fn inverse_label(rel_type: &RelationType) -> &'static str {
     }
 }
 
-pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
-    let help_text = if app.search_active {
-        " Enter: Confirm | Esc: Cancel | Type to search... "
-    } else if app.show_graph {
-        " q: Quit | g: Details | /: Search | r: Reload | ↑↓: Navigate "
+fn draw_docs_browser(frame: &mut Frame, browser: &DocsBrowser, area: Rect) {
+    // Split into main content and help footer
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(3), Constraint::Length(1)])
+        .split(area);
+
+    let content_area = chunks[0];
+    let help_area = chunks[1];
+
+    if let Some(doc_content) = &browser.viewing_content {
+        // Show document content
+        draw_doc_content(frame, doc_content, browser.scroll_offset, content_area);
+
+        let help = Paragraph::new(" Esc: Back to list | ↑↓/jk: Scroll | PgUp/PgDn: Page scroll ")
+            .style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(help, help_area);
     } else {
-        " q: Quit | g: Graph | /: Search | r: Reload | ↑↓: Navigate | ←→: Expand/Collapse "
+        // Show file list
+        draw_docs_file_list(frame, browser, content_area);
+
+        let help = Paragraph::new(" Esc: Close docs | Enter: Open file | ↑↓: Navigate ")
+            .style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(help, help_area);
+    }
+}
+
+fn draw_docs_file_list(frame: &mut Frame, browser: &DocsBrowser, area: Rect) {
+    let title = format!(
+        " {} Documentation ({} files) ",
+        browser.docs_ref.ref_type.label(),
+        browser.files.len()
+    );
+
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Magenta));
+
+    if browser.files.is_empty() {
+        let paragraph = Paragraph::new("No markdown files found in documentation directory")
+            .block(block)
+            .style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(paragraph, area);
+        return;
+    }
+
+    let items: Vec<ListItem> = browser
+        .files
+        .iter()
+        .enumerate()
+        .map(|(i, file)| {
+            let is_selected = i == browser.selected_index;
+            let style = if is_selected {
+                Style::default()
+                    .bg(Color::Magenta)
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+
+            ListItem::new(Line::from(Span::styled(file.relative_path.clone(), style)))
+        })
+        .collect();
+
+    let list = List::new(items).block(block);
+    frame.render_widget(list, area);
+}
+
+fn draw_doc_content(
+    frame: &mut Frame,
+    content: &crate::docs::DocContent,
+    scroll: usize,
+    area: Rect,
+) {
+    let title = format!(" {} ", content.file.name);
+
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Magenta));
+
+    // Calculate visible area height (minus borders)
+    let inner_height = area.height.saturating_sub(2) as usize;
+
+    // Create lines with basic markdown rendering
+    let lines: Vec<Line> = content
+        .lines
+        .iter()
+        .skip(scroll)
+        .take(inner_height)
+        .map(|line| format_markdown_line(line))
+        .collect();
+
+    let paragraph = Paragraph::new(lines)
+        .block(block)
+        .wrap(Wrap { trim: false });
+    frame.render_widget(paragraph, area);
+
+    // Show scroll indicator
+    if content.lines.len() > inner_height {
+        let scroll_info = format!(
+            " {}-{}/{} ",
+            scroll + 1,
+            (scroll + inner_height).min(content.lines.len()),
+            content.lines.len()
+        );
+        let scroll_len = scroll_info.len();
+        let scroll_span = Span::styled(scroll_info, Style::default().fg(Color::DarkGray));
+        let scroll_para = Paragraph::new(Line::from(scroll_span));
+        let scroll_area = Rect {
+            x: area.x + area.width.saturating_sub(scroll_len as u16 + 2),
+            y: area.y,
+            width: scroll_len as u16 + 1,
+            height: 1,
+        };
+        frame.render_widget(scroll_para, scroll_area);
+    }
+}
+
+/// Basic markdown line formatting
+fn format_markdown_line(line: &str) -> Line<'static> {
+    let trimmed = line.trim_start();
+
+    // Headers
+    if trimmed.starts_with("# ") {
+        return Line::from(Span::styled(
+            line.to_string(),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
+    if trimmed.starts_with("## ") {
+        return Line::from(Span::styled(
+            line.to_string(),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
+    if trimmed.starts_with("### ") {
+        return Line::from(Span::styled(
+            line.to_string(),
+            Style::default().fg(Color::Cyan),
+        ));
+    }
+
+    // Code blocks
+    if trimmed.starts_with("```") {
+        return Line::from(Span::styled(
+            line.to_string(),
+            Style::default().fg(Color::Yellow),
+        ));
+    }
+
+    // Bullet points
+    if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+        return Line::from(Span::styled(
+            line.to_string(),
+            Style::default().fg(Color::Green),
+        ));
+    }
+
+    // Numbered lists
+    if trimmed
+        .chars()
+        .next()
+        .map(|c| c.is_ascii_digit())
+        .unwrap_or(false)
+        && trimmed.contains(". ")
+    {
+        return Line::from(Span::styled(
+            line.to_string(),
+            Style::default().fg(Color::Green),
+        ));
+    }
+
+    // Links (simplified detection)
+    if trimmed.contains("](") || trimmed.starts_with("http") {
+        return Line::from(Span::styled(
+            line.to_string(),
+            Style::default().fg(Color::Blue),
+        ));
+    }
+
+    // Blockquotes
+    if trimmed.starts_with("> ") {
+        return Line::from(Span::styled(
+            line.to_string(),
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::ITALIC),
+        ));
+    }
+
+    // Regular text
+    Line::from(line.to_string())
+}
+
+pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
+    // Don't draw footer if docs browser is active (it has its own)
+    if app.docs_browser.is_some() {
+        return;
+    }
+
+    let has_docs = !app.get_docs_refs().is_empty();
+    let docs_hint = if has_docs { " | d: Docs" } else { "" };
+
+    let help_text = if app.search_active {
+        " Enter: Confirm | Esc: Cancel | Type to search... ".to_string()
+    } else if app.show_graph {
+        format!(
+            " q: Quit | g: Details | /: Search | r: Reload{} | ↑↓: Navigate ",
+            docs_hint
+        )
+    } else {
+        format!(
+            " q: Quit | g: Graph | /: Search | r: Reload{} | ↑↓: Navigate | ←→: Expand/Collapse ",
+            docs_hint
+        )
     };
     let help = Paragraph::new(help_text)
         .style(Style::default().fg(Color::DarkGray))

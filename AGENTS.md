@@ -30,7 +30,9 @@ The application follows a standard TUI architecture with separation between data
 
 - **graph.rs** - Extracts relationship graphs for entities. `RelationshipGraph` contains outgoing relationships (owner, system, domain, dependencies, APIs) and incoming relationships (entities that reference this one).
 
-- **app.rs** - Application state (`App`) combining tree, tree state, entity index, and UI mode. Handles navigation, search, graph toggle, and reload.
+- **docs.rs** - Documentation browser for TechDocs and ADR markdown files. Parses `backstage.io/techdocs-ref` and `backstage.io/adr-location` annotations. Provides file discovery, markdown rendering, and scrollable viewing.
+
+- **app.rs** - Application state (`App`) combining tree, tree state, entity index, docs browser, and UI mode. Handles navigation, search, graph toggle, docs browsing, and reload.
 
 - **ui.rs** - Ratatui rendering with two-panel layout: entity tree with search bar (left) and details/graph panel (right). Includes reference validation visualization.
 
@@ -50,3 +52,4 @@ The application follows a standard TUI architecture with separation between data
 - **Normal mode**: Tree navigation, expand/collapse, toggle views
 - **Search mode**: Filter entities by name (activated with `/`)
 - **Graph view**: Show relationships instead of details (toggle with `g`)
+- **Docs browser**: Browse TechDocs/ADR markdown files (activated with `d` when annotations present)

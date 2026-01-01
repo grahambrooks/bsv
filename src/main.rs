@@ -1,4 +1,5 @@
 mod app;
+mod docs;
 mod entity;
 mod graph;
 mod parser;
@@ -96,6 +97,43 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
                         }
                         _ => {}
                     }
+                } else if app.is_docs_active() {
+                    // Docs browser mode input handling
+                    let visible_height = terminal.size()?.height.saturating_sub(4) as usize;
+                    match key.code {
+                        KeyCode::Esc => {
+                            app.close_docs();
+                        }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            if let Some(browser) = &mut app.docs_browser {
+                                browser.move_up();
+                            }
+                        }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            if let Some(browser) = &mut app.docs_browser {
+                                browser.move_down(visible_height);
+                            }
+                        }
+                        KeyCode::PageUp => {
+                            if let Some(browser) = &mut app.docs_browser {
+                                browser.page_up(visible_height);
+                            }
+                        }
+                        KeyCode::PageDown => {
+                            if let Some(browser) = &mut app.docs_browser {
+                                browser.page_down(visible_height, visible_height);
+                            }
+                        }
+                        KeyCode::Enter => {
+                            if let Some(browser) = &mut app.docs_browser {
+                                browser.open_selected();
+                            }
+                        }
+                        KeyCode::Char('q') => {
+                            app.quit();
+                        }
+                        _ => {}
+                    }
                 } else {
                     // Normal mode input handling
                     match key.code {
@@ -128,6 +166,9 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
                         }
                         KeyCode::Char('g') => {
                             app.toggle_graph();
+                        }
+                        KeyCode::Char('d') => {
+                            app.open_docs();
                         }
                         _ => {}
                     }

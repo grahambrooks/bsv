@@ -10,8 +10,9 @@ A terminal UI application for exploring and visualizing [Backstage](https://back
 ## Features
 
 - **Tree View**: Hierarchical visualization of entities organized by Domain → System → Component
-- **Entity Details**: View metadata, ownership, lifecycle, tags, and source file information
+- **Entity Details**: View metadata, ownership, lifecycle, tags, links, annotations, and source file information
 - **Relationship Graph**: Visualize how entities relate to each other (dependencies, APIs, ownership)
+- **Documentation Browser**: View TechDocs and ADR markdown files directly in the terminal
 - **Reference Validation**: Highlights missing or invalid entity references
 - **Search**: Filter entities by name with `/` search
 - **Live Reload**: Refresh catalog data without restarting
@@ -48,6 +49,8 @@ bsv /path/to/catalog-info.yaml
 
 ## Keyboard Shortcuts
 
+### Main View
+
 | Key | Action |
 |-----|--------|
 | `↑` / `k` | Move up |
@@ -58,7 +61,19 @@ bsv /path/to/catalog-info.yaml
 | `/` | Start search |
 | `Esc` | Clear search / Cancel |
 | `g` | Toggle graph view |
+| `d` | Open documentation browser (when available) |
 | `r` | Reload catalog |
+| `q` | Quit |
+
+### Documentation Browser
+
+| Key | Action |
+|-----|--------|
+| `↑` / `k` | Navigate up / Scroll up |
+| `↓` / `j` | Navigate down / Scroll down |
+| `Enter` | Open selected file |
+| `PgUp` / `PgDn` | Page scroll |
+| `Esc` | Back to file list / Close browser |
 | `q` | Quit |
 
 ## Supported Entity Types
@@ -143,12 +158,27 @@ cargo clippy
 cargo fmt
 ```
 
+## Documentation Browser
+
+bsv can browse TechDocs and ADR documentation directly in the terminal. When an entity has documentation annotations, press `d` to open the documentation browser.
+
+### Supported Annotations
+
+- `backstage.io/techdocs-ref`: TechDocs reference (e.g., `dir:.` or `dir:./docs`)
+- `backstage.io/adr-location`: ADR location (e.g., `docs/adr`)
+
+The browser provides:
+- File list navigation for markdown files
+- Basic markdown syntax highlighting (headers, lists, code blocks, links)
+- Scrollable document viewing
+
 ## Project Structure
 
 ```
 src/
 ├── main.rs      # Entry point and event loop
 ├── app.rs       # Application state management
+├── docs.rs      # Documentation browser and TechDocs/ADR support
 ├── entity.rs    # Entity types and reference parsing
 ├── parser.rs    # YAML file discovery and parsing
 ├── tree.rs      # Tree data structure
