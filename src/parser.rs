@@ -45,7 +45,9 @@ pub const EXCLUDED_DIR_PREFIXES: &[&str] = &[
 pub fn should_exclude_dir(name: &str) -> bool {
     name.starts_with('.')
         || EXCLUDED_DIRS.contains(&name)
-        || EXCLUDED_DIR_PREFIXES.iter().any(|prefix| name.starts_with(prefix))
+        || EXCLUDED_DIR_PREFIXES
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
 }
 
 pub fn discover_catalog_files(root: &Path) -> Vec<std::path::PathBuf> {
