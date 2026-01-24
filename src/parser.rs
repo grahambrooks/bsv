@@ -4,10 +4,65 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
+/// Directories to skip during filesystem scans (build outputs, dependencies, caches)
+pub const EXCLUDED_DIRS: &[&str] = &[
+    // Rust
+    "target",
+    // Node.js
+    "node_modules",
+    // Python
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".tox",
+    // Java / Gradle / Maven
+    "build",
+    ".gradle",
+    // .NET
+    "bin",
+    "obj",
+    // Generic build outputs
+    "dist",
+    "out",
+    // Frontend frameworks
+    ".next",
+    ".nuxt",
+    ".svelte-kit",
+    // Caches and tooling
+    ".cache",
+    ".parcel-cache",
+    ".turbo",
+    "coverage",
+];
+
+/// Directory prefixes to skip (matches any directory starting with these)
+pub const EXCLUDED_DIR_PREFIXES: &[&str] = &[
+    // Bazel (generates bazel-out, bazel-bin, bazel-testlogs, bazel-<project>, etc.)
+    "bazel-",
+];
+
+/// Check if a directory name should be excluded from scanning
+pub fn should_exclude_dir(name: &str) -> bool {
+    name.starts_with('.')
+        || EXCLUDED_DIRS.contains(&name)
+        || EXCLUDED_DIR_PREFIXES.iter().any(|prefix| name.starts_with(prefix))
+}
+
 pub fn discover_catalog_files(root: &Path) -> Vec<std::path::PathBuf> {
     WalkDir::new(root)
         .follow_links(true)
         .into_iter()
+        .filter_entry(|e| {
+            // Allow files, but filter directories
+            if e.file_type().is_dir() {
+                e.file_name()
+                    .to_str()
+                    .map(|name| !should_exclude_dir(name))
+                    .unwrap_or(true)
+            } else {
+                true
+            }
+        })
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .filter(|e| {

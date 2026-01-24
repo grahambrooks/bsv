@@ -1,3 +1,4 @@
+use crate::parser::should_exclude_dir;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -226,12 +227,13 @@ fn collect_markdown_files(base_path: &Path, current_path: &Path, files: &mut Vec
             let path = entry.path();
 
             if path.is_dir() {
-                // Skip hidden directories
-                if !path
+                // Skip hidden directories and build output directories
+                let should_skip = path
                     .file_name()
-                    .map(|n| n.to_string_lossy().starts_with('.'))
-                    .unwrap_or(false)
-                {
+                    .map(|n| should_exclude_dir(&n.to_string_lossy()))
+                    .unwrap_or(false);
+
+                if !should_skip {
                     collect_markdown_files(base_path, &path, files);
                 }
             } else if is_markdown_file(&path) {
