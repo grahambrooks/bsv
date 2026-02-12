@@ -123,7 +123,7 @@ checksum = "dc0b364ead1874514c8c2855ab558056ebfeb775653e7ae45ff72f28f8f3166c"
 
 [[package]]
 name = "bsv"
-version = "0.1.0"
+version = "2026.2.12"
 dependencies = [
  "anyhow",
  "crossterm",
