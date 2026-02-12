@@ -20,7 +20,7 @@ use ratatui::{
 };
 use std::{env, io, path::PathBuf};
 
-use app::App;
+use app::{App, InputMode};
 
 fn main() -> Result<()> {
     let root = env::args()
@@ -79,98 +79,11 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
 
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
-                if app.search_active {
-                    // Search mode input handling
-                    match key.code {
-                        KeyCode::Esc => {
-                            app.cancel_search();
-                        }
-                        KeyCode::Enter => {
-                            app.confirm_search();
-                        }
-                        KeyCode::Backspace => {
-                            app.search_backspace();
-                        }
-                        KeyCode::Char(c) => {
-                            app.search_input(c);
-                        }
-                        _ => {}
-                    }
-                } else if app.is_docs_active() {
-                    // Docs browser mode input handling
-                    let visible_height = terminal.size()?.height.saturating_sub(4) as usize;
-                    match key.code {
-                        KeyCode::Esc => {
-                            app.close_docs();
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            if let Some(browser) = &mut app.docs_browser {
-                                browser.move_up();
-                            }
-                        }
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            if let Some(browser) = &mut app.docs_browser {
-                                browser.move_down(visible_height);
-                            }
-                        }
-                        KeyCode::PageUp => {
-                            if let Some(browser) = &mut app.docs_browser {
-                                browser.page_up(visible_height);
-                            }
-                        }
-                        KeyCode::PageDown => {
-                            if let Some(browser) = &mut app.docs_browser {
-                                browser.page_down(visible_height, visible_height);
-                            }
-                        }
-                        KeyCode::Enter => {
-                            if let Some(browser) = &mut app.docs_browser {
-                                browser.open_selected();
-                            }
-                        }
-                        KeyCode::Char('q') => {
-                            app.quit();
-                        }
-                        _ => {}
-                    }
-                } else {
-                    // Normal mode input handling
-                    match key.code {
-                        KeyCode::Char('q') => {
-                            app.quit();
-                        }
-                        KeyCode::Esc => {
-                            app.clear_search();
-                        }
-                        KeyCode::Char('/') => {
-                            app.start_search();
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            app.move_up();
-                        }
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            app.move_down();
-                        }
-                        KeyCode::Left | KeyCode::Char('h') => {
-                            app.collapse();
-                        }
-                        KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => {
-                            app.toggle_expand();
-                        }
-                        KeyCode::Char('e') => {
-                            app.expand_all();
-                        }
-                        KeyCode::Char('r') => {
-                            app.reload();
-                        }
-                        KeyCode::Char('g') => {
-                            app.toggle_graph();
-                        }
-                        KeyCode::Char('d') => {
-                            app.open_docs();
-                        }
-                        _ => {}
-                    }
+                let visible_height = terminal.size()?.height.saturating_sub(4) as usize;
+                match app.input_mode() {
+                    InputMode::Normal => handle_normal_mode(&mut app, key.code),
+                    InputMode::Search => handle_search_mode(&mut app, key.code),
+                    InputMode::DocsBrowser => handle_docs_mode(&mut app, key.code, visible_height),
                 }
             }
         }
@@ -178,5 +91,65 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
         if app.should_quit {
             return Ok(());
         }
+    }
+}
+
+fn handle_normal_mode(app: &mut App, key_code: KeyCode) {
+    match key_code {
+        KeyCode::Char('q') => app.quit(),
+        KeyCode::Esc => app.clear_search(),
+        KeyCode::Char('/') => app.start_search(),
+        KeyCode::Up | KeyCode::Char('k') => app.move_up(),
+        KeyCode::Down | KeyCode::Char('j') => app.move_down(),
+        KeyCode::Left | KeyCode::Char('h') => app.collapse(),
+        KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => app.toggle_expand(),
+        KeyCode::Char('e') => app.expand_all(),
+        KeyCode::Char('r') => app.reload(),
+        KeyCode::Char('g') => app.toggle_graph(),
+        KeyCode::Char('d') => app.open_docs(),
+        _ => {}
+    }
+}
+
+fn handle_search_mode(app: &mut App, key_code: KeyCode) {
+    match key_code {
+        KeyCode::Esc => app.cancel_search(),
+        KeyCode::Enter => app.confirm_search(),
+        KeyCode::Backspace => app.search_backspace(),
+        KeyCode::Char(c) => app.search_input(c),
+        _ => {}
+    }
+}
+
+fn handle_docs_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {
+    match key_code {
+        KeyCode::Esc => app.close_docs(),
+        KeyCode::Up | KeyCode::Char('k') => {
+            if let Some(browser) = &mut app.docs_browser {
+                browser.move_up();
+            }
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            if let Some(browser) = &mut app.docs_browser {
+                browser.move_down(visible_height);
+            }
+        }
+        KeyCode::PageUp => {
+            if let Some(browser) = &mut app.docs_browser {
+                browser.page_up(visible_height);
+            }
+        }
+        KeyCode::PageDown => {
+            if let Some(browser) = &mut app.docs_browser {
+                browser.page_down(visible_height, visible_height);
+            }
+        }
+        KeyCode::Enter => {
+            if let Some(browser) = &mut app.docs_browser {
+                browser.open_selected();
+            }
+        }
+        KeyCode::Char('q') => app.quit(),
+        _ => {}
     }
 }

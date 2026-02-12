@@ -1,3 +1,110 @@
+//! Application state management and navigation logic.
+//!
+//! This module manages the overall application state including the entity tree, selection,
+//! search state, relationship graph view, and documentation browser. It provides methods
+//! for navigation (up/down), expansion/collapse, search, and mode switching between normal
+//! view, graph view, and docs browser.
+//!
+//! # Examples
+//!
+//! ## Creating and Using the App
+//!
+//! ```no_run
+//! use bsv::app::App;
+//! use std::path::Path;
+//!
+//! let mut app = App::new(Path::new("."))?;
+//! println!("Loaded {} entities", app.entity_count);
+//!
+//! // Navigate through entities
+//! app.move_down();
+//! app.move_down();
+//! app.toggle_expand();
+//!
+//! // Get currently selected entity
+//! if let Some(entity) = app.selected_entity() {
+//!     println!("Selected: {}", entity.entity.display_name());
+//! }
+//! # Ok::<(), anyhow::Error>(())
+//! ```
+//!
+//! ## Search Functionality
+//!
+//! ```no_run
+//! # use bsv::app::App;
+//! # use std::path::Path;
+//! # let mut app = App::new(Path::new("."))?;
+//! // Start search mode
+//! app.start_search();
+//! app.search_input('u');
+//! app.search_input('s');
+//! app.search_input('e');
+//! app.search_input('r');
+//!
+//! // Get filtered results
+//! let visible = app.visible_nodes();
+//! println!("Found {} matches", visible.len());
+//!
+//! // Confirm search (exits input mode but keeps filter)
+//! app.confirm_search();
+//! # Ok::<(), anyhow::Error>(())
+//! ```
+//!
+//! ## Viewing Relationship Graph
+//!
+//! ```no_run
+//! # use bsv::app::App;
+//! # use std::path::Path;
+//! # let mut app = App::new(Path::new("."))?;
+//! # app.move_down();
+//! // Toggle graph view for selected entity
+//! app.toggle_graph();
+//!
+//! if app.show_graph {
+//!     if let Some(graph) = app.get_relationship_graph() {
+//!         println!("Center: {}", graph.center.display_name);
+//!         println!("Outgoing relationships: {}", graph.outgoing.len());
+//!         println!("Incoming relationships: {}", graph.incoming.len());
+//!     }
+//! }
+//! # Ok::<(), anyhow::Error>(())
+//! ```
+//!
+//! ## Documentation Browser
+//!
+//! ```no_run
+//! # use bsv::app::App;
+//! # use std::path::Path;
+//! # let mut app = App::new(Path::new("."))?;
+//! // Check if selected entity has docs
+//! let docs_refs = app.get_docs_refs();
+//! if !docs_refs.is_empty() {
+//!     app.open_docs();
+//!     assert!(app.is_docs_active());
+//! }
+//!
+//! // Close docs browser
+//! app.close_docs();
+//! # Ok::<(), anyhow::Error>(())
+//! ```
+//!
+//! ## Reloading Entities
+//!
+//! ```no_run
+//! # use bsv::app::App;
+//! # use std::path::Path;
+//! # let mut app = App::new(Path::new("."))?;
+//! // Reload entities from disk (e.g., after file changes)
+//! app.reload();
+//! println!("Reloaded {} entities", app.entity_count);
+//! # Ok::<(), anyhow::Error>(())
+//! ```
+//!
+//! # Key Types
+//!
+//! - [`App`] - Main application state container
+//! - [`InputMode`] - Current input mode (Normal, Search, DocsBrowser)
+
 use crate::docs::{parse_docs_refs, DocsBrowser, DocsRef};
 use crate::entity::{EntityIndex, EntityWithSource};
 use crate::graph::RelationshipGraph;
@@ -5,6 +112,12 @@ use crate::parser::load_all_entities;
 use crate::tree::{EntityTree, TreeNode, TreeState};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
+
+pub enum InputMode {
+    Normal,
+    Search,
+    DocsBrowser,
+}
 
 pub struct App {
     pub tree: EntityTree,
@@ -21,6 +134,9 @@ pub struct App {
 }
 
 impl App {
+    /// Create a new app by loading entities from the given path.
+    ///
+    /// Root categories are expanded by default for immediate visibility.
     pub fn new(root: &Path) -> Result<Self> {
         let entities = load_all_entities(root)?;
         let entity_count = entities.len();
@@ -48,6 +164,9 @@ impl App {
         })
     }
 
+    /// Reload all entities from disk and reset state.
+    ///
+    /// Useful when catalog files have changed and need to be re-parsed.
     pub fn reload(&mut self) {
         if let Ok(entities) = load_all_entities(&self.root_path) {
             self.entity_count = entities.len();
@@ -106,6 +225,7 @@ impl App {
             .map(|e| RelationshipGraph::build(e, &self.entities))
     }
 
+    /// Get visible nodes filtered by search query if active.
     pub fn visible_nodes(&self) -> Vec<&TreeNode> {
         let nodes = self.tree.visible_nodes(&self.tree_state);
         if self.search_query.is_empty() {
@@ -218,5 +338,15 @@ impl App {
 
     pub fn clear_search(&mut self) {
         self.search_query.clear();
+    }
+
+    pub fn input_mode(&self) -> InputMode {
+        if self.search_active {
+            InputMode::Search
+        } else if self.is_docs_active() {
+            InputMode::DocsBrowser
+        } else {
+            InputMode::Normal
+        }
     }
 }

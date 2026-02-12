@@ -1,0 +1,12 @@
+# Another test catalog file in a subdirectory
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: test-api
+  description: Test API in subdirectory
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-test
+  definition: |
+    openapi: 3.0.0

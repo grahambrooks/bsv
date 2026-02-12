@@ -1,0 +1,10 @@
+# Test catalog file for discovery tests
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: test-component
+  description: Test component for discovery
+spec:
+  type: service
+  lifecycle: production
+  owner: team-test
