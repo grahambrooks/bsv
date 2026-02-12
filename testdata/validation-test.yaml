@@ -1,0 +1,104 @@
+# Test catalog with validation errors
+---
+# Valid component
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: valid-service
+  description: This is a valid component
+spec:
+  type: service
+  lifecycle: production
+  owner: team-a
+
+---
+# Invalid component - missing required owner field
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: missing-owner
+  description: Component without owner
+spec:
+  type: service
+  lifecycle: production
+
+---
+# Invalid component - missing required lifecycle field
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: missing-lifecycle
+  description: Component without lifecycle
+spec:
+  type: service
+  owner: team-a
+
+---
+# Invalid component - missing required type field
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: missing-type
+  description: Component without type
+spec:
+  lifecycle: production
+  owner: team-a
+
+---
+# Valid API
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: valid-api
+  description: A valid API definition
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-b
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Test API
+
+---
+# Invalid API - missing required definition field
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: missing-definition
+  description: API without definition
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-b
+
+---
+# Valid Domain
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: valid-domain
+  description: A valid domain
+spec:
+  owner: team-c
+
+---
+# Invalid Domain - missing required owner field
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: missing-owner-domain
+  description: Domain without owner
+spec: {}
+
+---
+# Invalid - empty name (will fail YAML parsing but testing schema validation)
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ""
+  description: Component with empty name
+spec:
+  type: service
+  lifecycle: production
+  owner: team-a

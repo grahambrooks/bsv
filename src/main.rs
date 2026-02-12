@@ -5,6 +5,7 @@ mod graph;
 mod parser;
 mod tree;
 mod ui;
+mod validator;
 
 use anyhow::Result;
 use crossterm::{

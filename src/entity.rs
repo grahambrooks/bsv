@@ -2,6 +2,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+/// Validation error from JSON Schema validation
+#[derive(Debug, Clone)]
+pub struct ValidationError {
+    pub path: String,
+    pub message: String,
+}
+
 /// Parsed entity reference with resolved kind and namespace
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EntityRef {
@@ -95,29 +102,29 @@ impl std::fmt::Display for EntityKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Metadata {
     pub name: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub labels: HashMap<String, String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub annotations: HashMap<String, String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<Link>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Link {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
 }
 
@@ -135,6 +142,22 @@ pub struct Entity {
 pub struct EntityWithSource {
     pub entity: Entity,
     pub source_file: PathBuf,
+    pub validation_errors: Vec<ValidationError>,
+}
+
+impl EntityWithSource {
+    pub fn new(entity: Entity, source_file: PathBuf) -> Self {
+        Self {
+            entity,
+            source_file,
+            validation_errors: Vec::new(),
+        }
+    }
+
+    pub fn with_validation_errors(mut self, errors: Vec<ValidationError>) -> Self {
+        self.validation_errors = errors;
+        self
+    }
 }
 
 impl Entity {

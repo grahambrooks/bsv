@@ -61,12 +61,31 @@ fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
             };
 
             let indent = "  ".repeat(node.depth);
-            let label = format!("{}{}{}", indent, prefix, node.label);
+            
+            // Check for validation errors
+            let has_errors = node.entity.as_ref()
+                .map(|ews| !ews.validation_errors.is_empty())
+                .unwrap_or(false);
+            
+            let error_indicator = if has_errors {
+                let error_count = node.entity.as_ref()
+                    .map(|ews| ews.validation_errors.len())
+                    .unwrap_or(0);
+                format!(" ⚠ {}", error_count)
+            } else {
+                String::new()
+            };
+            
+            let label = format!("{}{}{}{}", indent, prefix, node.label, error_indicator);
 
             let style = if is_selected {
                 Style::default()
                     .bg(Color::Blue)
                     .fg(Color::White)
+                    .add_modifier(Modifier::BOLD)
+            } else if has_errors {
+                Style::default()
+                    .fg(Color::Red)
                     .add_modifier(Modifier::BOLD)
             } else if node.is_category {
                 Style::default()
@@ -132,7 +151,7 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
         .border_style(Style::default().fg(Color::Cyan));
 
     if let Some(ews) = app.selected_entity() {
-        let content = format_entity_details(ews, &app.entity_index);
+        let content = format_entity_details(ews, &app.entity_index, &app.entities);
         let paragraph = Paragraph::new(content)
             .block(block)
             .wrap(Wrap { trim: false });
@@ -150,7 +169,7 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex) -> Vec<Line<'static>> {
+fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex, all_entities: &[EntityWithSource]) -> Vec<Line<'static>> {
     let entity = &ews.entity;
     let mut lines = Vec::new();
 
@@ -239,6 +258,124 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex) -> Vec<Lin
         ]));
     }
 
+    // Group-specific information
+    use crate::entity::EntityKind;
+    if matches!(entity.kind, EntityKind::Group) {
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            "─── Group Hierarchy ───",
+            Style::default().fg(Color::Magenta),
+        )));
+
+        // Parent group
+        if let Some(parent) = entity.get_spec_string("parent") {
+            let ref_line = format_entity_ref(&parent, "group", index);
+            lines.push(Line::from(
+                std::iter::once(Span::styled("Parent: ", Style::default().fg(Color::Yellow)))
+                    .chain(ref_line)
+                    .collect::<Vec<_>>(),
+            ));
+        } else {
+            lines.push(Line::from(Span::styled(
+                "Parent: (none - root group)",
+                Style::default().fg(Color::DarkGray),
+            )));
+        }
+
+        // Child groups
+        if let Some(children) = entity.spec.get("children") {
+            if let Some(children_arr) = children.as_sequence() {
+                if !children_arr.is_empty() {
+                    lines.push(Line::from(""));
+                    lines.push(Line::from(Span::styled(
+                        format!("Child Groups ({}):", children_arr.len()),
+                        Style::default().fg(Color::Yellow),
+                    )));
+                    for child in children_arr {
+                        if let Some(child_str) = child.as_str() {
+                            let ref_line = format_entity_ref(child_str, "group", index);
+                            lines.push(Line::from(
+                                std::iter::once(Span::styled("  └─ ", Style::default().fg(Color::DarkGray)))
+                                    .chain(ref_line)
+                                    .collect::<Vec<_>>(),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Members (users who have memberOf pointing to this group)
+        // Find all users and groups that are members of this group
+        let group_ref = entity.ref_key();
+        let mut members: Vec<&EntityWithSource> = all_entities
+            .iter()
+            .filter(|e| {
+                if let Some(member_of) = e.entity.spec.get("memberOf") {
+                    if let Some(member_of_arr) = member_of.as_sequence() {
+                        return member_of_arr.iter().any(|m| {
+                            if let Some(m_str) = m.as_str() {
+                                let parsed = EntityRef::parse(m_str, "group");
+                                parsed.canonical() == group_ref
+                            } else {
+                                false
+                            }
+                        });
+                    }
+                }
+                false
+            })
+            .collect();
+
+        // Sort members by kind, then name
+        members.sort_by(|a, b| {
+            a.entity
+                .kind
+                .to_string()
+                .cmp(&b.entity.kind.to_string())
+                .then_with(|| a.entity.metadata.name.cmp(&b.entity.metadata.name))
+        });
+
+        lines.push(Line::from(""));
+        if members.is_empty() {
+            lines.push(Line::from(vec![
+                Span::styled("Members: ", Style::default().fg(Color::Yellow)),
+                Span::styled("(none)", Style::default().fg(Color::DarkGray)),
+            ]));
+        } else {
+            lines.push(Line::from(Span::styled(
+                format!("Members ({}):", members.len()),
+                Style::default().fg(Color::Yellow),
+            )));
+            
+            // Group members by kind for better organization
+            let mut current_kind = String::new();
+            for member in members {
+                let kind_str = member.entity.kind.to_string();
+                if kind_str != current_kind {
+                    if !current_kind.is_empty() {
+                        lines.push(Line::from(""));
+                    }
+                    current_kind = kind_str.clone();
+                }
+                
+                let kind_label = format!("[{}]", kind_str.to_lowercase());
+                lines.push(Line::from(vec![
+                    Span::styled("  • ", Style::default().fg(Color::DarkGray)),
+                    Span::styled(
+                        kind_label,
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                    Span::raw(" "),
+                    Span::styled(
+                        member.entity.display_name(),
+                        Style::default().fg(Color::Cyan),
+                    ),
+                ]));
+            }
+        }
+    }
+
     // Tags
     if !entity.metadata.tags.is_empty() {
         lines.push(Line::from(""));
@@ -322,6 +459,36 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex) -> Vec<Lin
             Style::default().fg(Color::DarkGray),
         ),
     ]));
+
+    // Validation errors
+    if !ews.validation_errors.is_empty() {
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            format!("⚠ Validation Errors ({}):", ews.validation_errors.len()),
+            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+        )));
+        
+        for (idx, error) in ews.validation_errors.iter().enumerate() {
+            lines.push(Line::from(""));
+            lines.push(Line::from(vec![
+                Span::styled(
+                    format!("  {}. ", idx + 1),
+                    Style::default().fg(Color::Red),
+                ),
+                Span::styled(
+                    format!("Field: {}", error.path),
+                    Style::default().fg(Color::Yellow),
+                ),
+            ]));
+            lines.push(Line::from(vec![
+                Span::styled("     ", Style::default()),
+                Span::styled(
+                    error.message.clone(),
+                    Style::default().fg(Color::White),
+                ),
+            ]));
+        }
+    }
 
     lines
 }

@@ -11,6 +11,8 @@ A terminal UI application for exploring and visualizing [Backstage](https://back
 
 - **Tree View**: Hierarchical visualization of entities organized by Domain → System → Component
 - **Entity Details**: View metadata, ownership, lifecycle, tags, links, annotations, and source file information
+- **Group Hierarchy**: Display group parent/child relationships and member lists for organizational structure
+- **Schema Validation**: Automatically validates entities against the official Backstage JSON Schema
 - **Relationship Graph**: Visualize how entities relate to each other (dependencies, APIs, ownership)
 - **Documentation Browser**: View TechDocs and ADR markdown files directly in the terminal
 - **Reference Validation**: Highlights missing or invalid entity references
@@ -112,6 +114,21 @@ bsv validates entity references and provides visual feedback:
 - **Yellow**: Reference not found (might be external or missing)
 - **Red**: Unknown entity kind
 
+## Schema Validation
+
+bsv automatically validates all entities against the official [Backstage catalog JSON Schema](https://json.schemastore.org/catalog-info.json). Validation errors are displayed:
+
+- **In the tree view**: Entities with validation errors are shown in red with a ⚠ indicator and error count
+- **In the details panel**: Full validation error details including field path and error message
+
+Common validation errors include:
+- Missing required fields (e.g., `owner`, `lifecycle`, `type` for Components)
+- Invalid field types or values
+- Missing `apiVersion` or `kind`
+- Empty or invalid entity names
+
+This helps ensure your catalog files comply with Backstage standards before deployment.
+
 ## Catalog File Format
 
 bsv reads standard Backstage `catalog-info.yaml` files:
@@ -183,6 +200,7 @@ src/
 ├── parser.rs    # YAML file discovery and parsing
 ├── tree.rs      # Tree data structure
 ├── graph.rs     # Relationship graph extraction
+├── validator.rs # JSON Schema validation
 └── ui.rs        # Terminal UI rendering
 ```
 

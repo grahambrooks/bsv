@@ -1,4 +1,5 @@
 use crate::entity::{Entity, EntityWithSource};
+use crate::validator::validate_entity;
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
@@ -90,10 +91,13 @@ fn parse_multi_document_yaml(content: &str, source_path: &Path) -> Result<Vec<En
     for document in serde_yaml::Deserializer::from_str(content) {
         match Entity::deserialize(document) {
             Ok(entity) => {
-                entities.push(EntityWithSource {
-                    entity,
-                    source_file: source_path.to_path_buf(),
-                });
+                // Validate the entity against JSON Schema
+                let validation_errors = validate_entity(&entity);
+                
+                entities.push(
+                    EntityWithSource::new(entity, source_path.to_path_buf())
+                        .with_validation_errors(validation_errors)
+                );
             }
             Err(e) => {
                 eprintln!(
