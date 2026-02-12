@@ -231,11 +231,7 @@ impl App {
         if self.search_query.is_empty() {
             nodes
         } else {
-            let query = self.search_query.to_lowercase();
-            nodes
-                .into_iter()
-                .filter(|n| n.label.to_lowercase().contains(&query))
-                .collect()
+            EntityTree::filter_by_search(nodes, &self.search_query)
         }
     }
 
