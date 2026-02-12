@@ -168,10 +168,10 @@ fn parse_multi_document_yaml(content: &str, source_path: &Path) -> Result<Vec<En
             Ok(entity) => {
                 // Validate the entity against JSON Schema
                 let validation_errors = validate_entity(&entity);
-                
+
                 entities.push(
                     EntityWithSource::new(entity, source_path.to_path_buf())
-                        .with_validation_errors(validation_errors)
+                        .with_validation_errors(validation_errors),
                 );
             }
             Err(e) => {
@@ -279,12 +279,15 @@ mod tests {
     fn test_discover_catalog_files() {
         // Use the testdata directory for discovery
         let testdata_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
-        
+
         let files = discover_catalog_files(&testdata_path);
-        
+
         // Should find at least the catalog files we know exist
-        assert!(!files.is_empty(), "Should discover at least one catalog file");
-        
+        assert!(
+            !files.is_empty(),
+            "Should discover at least one catalog file"
+        );
+
         // All discovered files should end with catalog-info.yaml or catalog-info.yml
         for file in &files {
             let name = file.file_name().unwrap().to_str().unwrap();
@@ -294,7 +297,7 @@ mod tests {
                 name
             );
         }
-        
+
         // Files should be valid paths
         for file in &files {
             assert!(file.exists(), "File {} should exist", file.display());
@@ -343,19 +346,19 @@ spec:
             .expect("Should parse multi-document YAML");
 
         assert_eq!(entities.len(), 3, "Should parse 3 entities");
-        
+
         // Check first entity
         assert_eq!(entities[0].entity.metadata.name, "service-a");
         assert_eq!(entities[0].entity.kind.to_string(), "Component");
-        
+
         // Check second entity
         assert_eq!(entities[1].entity.metadata.name, "service-b");
         assert_eq!(entities[1].entity.kind.to_string(), "Component");
-        
+
         // Check third entity
         assert_eq!(entities[2].entity.metadata.name, "api-a");
         assert_eq!(entities[2].entity.kind.to_string(), "API");
-        
+
         // Check source path is preserved
         for entity in &entities {
             assert_eq!(entity.source_file, path);
@@ -368,22 +371,32 @@ spec:
         let testdata_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("testdata")
             .join("validation-test.yaml");
-        
-        let entities = parse_catalog_file(&testdata_path)
-            .expect("Should parse validation-test.yaml");
-        
+
+        let entities =
+            parse_catalog_file(&testdata_path).expect("Should parse validation-test.yaml");
+
         // validation-test.yaml contains 9 entities (counting the YAML content shown)
         assert!(!entities.is_empty(), "Should parse at least one entity");
-        
+
         // Verify some expected entities
-        let entity_names: Vec<&str> = entities.iter()
+        let entity_names: Vec<&str> = entities
+            .iter()
             .map(|e| e.entity.metadata.name.as_str())
             .collect();
-        
-        assert!(entity_names.contains(&"valid-service"), "Should contain valid-service");
-        assert!(entity_names.contains(&"valid-api"), "Should contain valid-api");
-        assert!(entity_names.contains(&"valid-domain"), "Should contain valid-domain");
-        
+
+        assert!(
+            entity_names.contains(&"valid-service"),
+            "Should contain valid-service"
+        );
+        assert!(
+            entity_names.contains(&"valid-api"),
+            "Should contain valid-api"
+        );
+        assert!(
+            entity_names.contains(&"valid-domain"),
+            "Should contain valid-domain"
+        );
+
         // Verify source path is set correctly
         for entity in &entities {
             assert_eq!(entity.source_file, testdata_path);
@@ -396,50 +409,54 @@ spec:
         let testdata_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("testdata")
             .join("validation-test.yaml");
-        
-        let entities = parse_catalog_file(&testdata_path)
-            .expect("Should parse validation-test.yaml");
-        
+
+        let entities =
+            parse_catalog_file(&testdata_path).expect("Should parse validation-test.yaml");
+
         // Find entities with and without validation errors
-        let valid_service = entities.iter()
+        let valid_service = entities
+            .iter()
             .find(|e| e.entity.metadata.name == "valid-service")
             .expect("Should find valid-service");
-        
-        let missing_owner = entities.iter()
+
+        let missing_owner = entities
+            .iter()
             .find(|e| e.entity.metadata.name == "missing-owner")
             .expect("Should find missing-owner");
-        
-        let missing_lifecycle = entities.iter()
+
+        let missing_lifecycle = entities
+            .iter()
             .find(|e| e.entity.metadata.name == "missing-lifecycle")
             .expect("Should find missing-lifecycle");
-        
-        let missing_type = entities.iter()
+
+        let missing_type = entities
+            .iter()
             .find(|e| e.entity.metadata.name == "missing-type")
             .expect("Should find missing-type");
-        
+
         // Valid entity should have no validation errors
         assert!(
             valid_service.validation_errors.is_empty(),
             "Valid service should have no validation errors, but has: {:?}",
             valid_service.validation_errors
         );
-        
+
         // Invalid entities should have validation errors
         assert!(
             !missing_owner.validation_errors.is_empty(),
             "missing-owner should have validation errors"
         );
-        
+
         assert!(
             !missing_lifecycle.validation_errors.is_empty(),
             "missing-lifecycle should have validation errors"
         );
-        
+
         assert!(
             !missing_type.validation_errors.is_empty(),
             "missing-type should have validation errors"
         );
-        
+
         // Check that error messages contain validation errors
         assert!(
             !missing_owner.validation_errors.is_empty(),
@@ -451,10 +468,10 @@ spec:
     fn test_load_all_entities_from_directory() {
         // Test loading all entities from the testdata directory
         let testdata_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
-        
-        let entities = load_all_entities(&testdata_path)
-            .expect("Should load entities from directory");
-        
+
+        let entities =
+            load_all_entities(&testdata_path).expect("Should load entities from directory");
+
         // Should find multiple entities across multiple files
         // Note: catalog-info.yaml files in testdata and subdir contain test entities
         assert!(
@@ -462,11 +479,15 @@ spec:
             "Should load at least 2 entities from testdata directory, but found {}",
             entities.len()
         );
-        
+
         // Verify entities were discovered from catalog-info.yaml files
-        let has_catalog_entities = entities.iter()
+        let has_catalog_entities = entities
+            .iter()
             .any(|e| e.source_file.file_name().unwrap() == "catalog-info.yaml");
-        assert!(has_catalog_entities, "Should find entities from catalog-info.yaml files");
+        assert!(
+            has_catalog_entities,
+            "Should find entities from catalog-info.yaml files"
+        );
     }
 
     #[test]
@@ -475,12 +496,15 @@ spec:
         let file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("testdata")
             .join("validation-test.yaml");
-        
-        let entities = load_all_entities(&file_path)
-            .expect("Should load entities from single file");
-        
-        assert!(!entities.is_empty(), "Should load entities from single file");
-        
+
+        let entities =
+            load_all_entities(&file_path).expect("Should load entities from single file");
+
+        assert!(
+            !entities.is_empty(),
+            "Should load entities from single file"
+        );
+
         // All entities should be from the same file
         for entity in &entities {
             assert_eq!(entity.source_file, file_path);
@@ -492,10 +516,10 @@ spec:
         // Test parsing empty YAML content
         let yaml_content = "";
         let path = Path::new("empty.yaml");
-        
-        let entities = parse_multi_document_yaml(yaml_content, path)
-            .expect("Should handle empty YAML");
-        
+
+        let entities =
+            parse_multi_document_yaml(yaml_content, path).expect("Should handle empty YAML");
+
         assert_eq!(entities.len(), 0, "Empty YAML should produce no entities");
     }
 
@@ -527,7 +551,7 @@ spec:
         let path = Path::new("mixed.yaml");
         let entities = parse_multi_document_yaml(yaml_content, path)
             .expect("Should parse valid entities and skip invalid ones");
-        
+
         // Should parse the valid entities and skip the invalid one
         assert_eq!(entities.len(), 2, "Should parse 2 valid entities");
         assert_eq!(entities[0].entity.metadata.name, "good-service");
@@ -538,22 +562,34 @@ spec:
     fn test_discover_excludes_build_directories() {
         // This test verifies that discovery properly excludes common build directories
         // by checking the should_exclude_dir function is applied correctly
-        
+
         // We can't easily create temporary directories with specific names,
         // but we can verify that if such directories existed, they would be excluded
         // by testing that our testdata directory (which doesn't have these dirs)
         // works correctly, and trusting should_exclude_dir tests cover the logic
-        
+
         let testdata_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata");
         let files = discover_catalog_files(&testdata_path);
-        
+
         // Verify none of the discovered files are in excluded directories
         for file in &files {
             let path_str = file.to_str().unwrap();
-            assert!(!path_str.contains("/target/"), "Should not find files in target/");
-            assert!(!path_str.contains("/node_modules/"), "Should not find files in node_modules/");
-            assert!(!path_str.contains("/.git/"), "Should not find files in .git/");
-            assert!(!path_str.contains("/bazel-"), "Should not find files in bazel-* dirs");
+            assert!(
+                !path_str.contains("/target/"),
+                "Should not find files in target/"
+            );
+            assert!(
+                !path_str.contains("/node_modules/"),
+                "Should not find files in node_modules/"
+            );
+            assert!(
+                !path_str.contains("/.git/"),
+                "Should not find files in .git/"
+            );
+            assert!(
+                !path_str.contains("/bazel-"),
+                "Should not find files in bazel-* dirs"
+            );
         }
     }
 
@@ -561,9 +597,9 @@ spec:
     fn test_parse_catalog_file_nonexistent() {
         // Test parsing a non-existent file
         let result = parse_catalog_file(Path::new("/nonexistent/catalog-info.yaml"));
-        
+
         assert!(result.is_err(), "Should return error for nonexistent file");
-        
+
         let err_msg = result.unwrap_err().to_string();
         assert!(
             err_msg.contains("Failed to read file") || err_msg.contains("No such file"),
@@ -634,15 +670,13 @@ spec:
 "#;
 
         let path = Path::new("kinds.yaml");
-        let entities = parse_multi_document_yaml(yaml_content, path)
-            .expect("Should parse all entity kinds");
-        
+        let entities =
+            parse_multi_document_yaml(yaml_content, path).expect("Should parse all entity kinds");
+
         assert_eq!(entities.len(), 7, "Should parse 7 different entity kinds");
-        
-        let kinds: Vec<String> = entities.iter()
-            .map(|e| e.entity.kind.to_string())
-            .collect();
-        
+
+        let kinds: Vec<String> = entities.iter().map(|e| e.entity.kind.to_string()).collect();
+
         assert!(kinds.contains(&"Component".to_string()));
         assert!(kinds.contains(&"API".to_string()));
         assert!(kinds.contains(&"System".to_string()));

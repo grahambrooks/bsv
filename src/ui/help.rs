@@ -18,9 +18,7 @@ pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
     let help_text = if app.search_active {
         " Enter: Confirm | Esc: Cancel | Type to search... ".to_string()
     } else if app.show_graph {
-        format!(
-            " q: Quit | g: Details | /: Search | r: Reload{docs_hint} | ↑↓: Navigate "
-        )
+        format!(" q: Quit | g: Details | /: Search | r: Reload{docs_hint} | ↑↓: Navigate ")
     } else {
         format!(
             " q: Quit | g: Graph | /: Search | r: Reload{docs_hint} | ↑↓: Navigate | ←→: Expand/Collapse "

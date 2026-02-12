@@ -27,14 +27,16 @@ pub fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
             Some(n) if n.is_category => "Category node - select an entity to view details",
             _ => "No entity selected",
         };
-        let paragraph = Paragraph::new(text)
-            .block(block)
-            .style(dimmed_style());
+        let paragraph = Paragraph::new(text).block(block).style(dimmed_style());
         frame.render_widget(paragraph, area);
     }
 }
 
-fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex, all_entities: &[EntityWithSource]) -> Vec<Line<'static>> {
+fn format_entity_details(
+    ews: &EntityWithSource,
+    index: &EntityIndex,
+    all_entities: &[EntityWithSource],
+) -> Vec<Line<'static>> {
     let entity = &ews.entity;
     let mut lines = Vec::new();
 
@@ -73,10 +75,7 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex, all_entiti
 
     // Description
     if let Some(desc) = &entity.metadata.description {
-        lines.push(Line::from(Span::styled(
-            "Description:",
-            label_style(),
-        )));
+        lines.push(Line::from(Span::styled("Description:", label_style())));
         lines.push(Line::from(desc.clone()));
         lines.push(Line::from(""));
     }
@@ -131,10 +130,7 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex, all_entiti
     // Tags
     if !entity.metadata.tags.is_empty() {
         lines.push(Line::from(""));
-        lines.push(Line::from(Span::styled(
-            "Tags:",
-            label_style(),
-        )));
+        lines.push(Line::from(Span::styled("Tags:", label_style())));
         lines.push(Line::from(entity.metadata.tags.join(", ")));
     }
 
@@ -152,10 +148,7 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex, all_entiti
     lines.push(Line::from(""));
     lines.push(Line::from(vec![
         Span::styled("Source: ", dimmed_style()),
-        Span::styled(
-            ews.source_file.display().to_string(),
-            dimmed_style(),
-        ),
+        Span::styled(ews.source_file.display().to_string(), dimmed_style()),
     ]));
 
     // Validation errors
@@ -265,7 +258,7 @@ fn format_group_members(
             format!("Members ({}):", members.len()),
             label_style(),
         )));
-        
+
         // Group members by kind for better organization
         let mut current_kind = String::new();
         for member in members {
@@ -276,14 +269,11 @@ fn format_group_members(
                 }
                 current_kind = kind_str.clone();
             }
-            
+
             let kind_label = format!("[{}]", kind_str.to_lowercase());
             lines.push(Line::from(vec![
                 Span::styled("  • ", dimmed_style()),
-                Span::styled(
-                    kind_label,
-                    dimmed_style(),
-                ),
+                Span::styled(kind_label, dimmed_style()),
                 Span::raw(" "),
                 Span::styled(
                     member.entity.display_name(),
@@ -296,10 +286,7 @@ fn format_group_members(
 
 fn format_links(links: &[crate::entity::Link], lines: &mut Vec<Line<'static>>) {
     lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled(
-        "Links:",
-        label_style(),
-    )));
+    lines.push(Line::from(Span::styled("Links:", label_style())));
     for link in links {
         let title = link
             .title
@@ -325,10 +312,7 @@ fn format_annotations(
     lines: &mut Vec<Line<'static>>,
 ) {
     lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled(
-        "Annotations:",
-        label_style(),
-    )));
+    lines.push(Line::from(Span::styled("Annotations:", label_style())));
 
     let mut sorted_annotations: Vec<_> = annotations.iter().collect();
     sorted_annotations.sort_by_key(|(k, _)| *k);
@@ -368,31 +352,22 @@ fn format_validation_errors(
         format!("⚠ Validation Errors ({}):", errors.len()),
         error_style(),
     )));
-    
+
     for (idx, error) in errors.iter().enumerate() {
         lines.push(Line::from(""));
         lines.push(Line::from(vec![
-            Span::styled(
-                format!("  {}. ", idx + 1),
-                Style::default().fg(Color::Red),
-            ),
-            Span::styled(
-                format!("Field: {}", error.path),
-                label_style(),
-            ),
+            Span::styled(format!("  {}. ", idx + 1), Style::default().fg(Color::Red)),
+            Span::styled(format!("Field: {}", error.path), label_style()),
         ]));
         lines.push(Line::from(vec![
             Span::styled("     ", Style::default()),
-            Span::styled(
-                error.message.clone(),
-                normal_style(),
-            ),
+            Span::styled(error.message.clone(), normal_style()),
         ]));
     }
 }
 
 /// Format an entity reference with resolved kind/namespace and validation
-/// 
+///
 /// Explicit parts shown in bright colors, inferred parts shown dim in \[brackets\]
 fn format_entity_ref(
     reference: &str,

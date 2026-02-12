@@ -418,10 +418,7 @@ impl EntityTree {
     }
 
     /// Filter visible nodes by search query
-    pub fn filter_by_search<'a>(
-        nodes: Vec<&'a TreeNode>,
-        search_query: &str,
-    ) -> Vec<&'a TreeNode> {
+    pub fn filter_by_search<'a>(nodes: Vec<&'a TreeNode>, search_query: &str) -> Vec<&'a TreeNode> {
         let query = search_query.to_lowercase();
         nodes
             .into_iter()
@@ -552,18 +549,14 @@ mod tests {
 
         let tree = EntityTree::build(entities);
         let mut state = TreeState::new();
-        
+
         // Expand the "Other Entities" category to see the actual entities
         state.expand_all(&tree);
         let visible = tree.visible_nodes(&state);
 
         // Filter by "user"
         let filtered = EntityTree::filter_by_search(visible.clone(), "user");
-        assert_eq!(
-            filtered.len(),
-            2,
-            "Should match user-service and user-api"
-        );
+        assert_eq!(filtered.len(), 2, "Should match user-service and user-api");
         assert!(filtered.iter().any(|n| n.label.contains("user-service")));
         assert!(filtered.iter().any(|n| n.label.contains("user-api")));
 
@@ -583,7 +576,7 @@ mod tests {
         // No matches
         let filtered = EntityTree::filter_by_search(visible.clone(), "nonexistent");
         assert_eq!(filtered.len(), 0, "Should have no matches");
-        
+
         // Filter by category name
         let filtered = EntityTree::filter_by_search(visible, "Other");
         assert_eq!(filtered.len(), 1, "Should match 'Other Entities' category");
@@ -685,10 +678,7 @@ mod tests {
         // Component and Resource should be depth 3
         for &child_id in &system_node.children {
             let child_node = &tree.nodes[child_id];
-            assert_eq!(
-                child_node.depth, 3,
-                "Component/Resource should be depth 3"
-            );
+            assert_eq!(child_node.depth, 3, "Component/Resource should be depth 3");
         }
     }
 
@@ -837,11 +827,7 @@ mod tests {
         let tree = EntityTree::build(entities);
 
         // Should have 3 root categories: Domains, Systems, Other Entities
-        assert_eq!(
-            tree.root_children.len(),
-            3,
-            "Should have 3 root categories"
-        );
+        assert_eq!(tree.root_children.len(), 3, "Should have 3 root categories");
 
         let categories: Vec<String> = tree
             .root_children

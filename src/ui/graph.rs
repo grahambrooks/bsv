@@ -35,10 +35,7 @@ fn format_graph(graph: &RelationshipGraph) -> Vec<Line<'static>> {
     // Center entity
     lines.push(Line::from(vec![
         Span::styled("◉ ", Style::default().fg(Color::Cyan)),
-        Span::styled(
-            format!("[{}] ", graph.center.kind),
-            dimmed_style(),
-        ),
+        Span::styled(format!("[{}] ", graph.center.kind), dimmed_style()),
         Span::styled(
             graph.center.display_name.clone(),
             Style::default()
@@ -99,10 +96,7 @@ fn format_outgoing_relationships(
             lines.push(Line::from(vec![
                 Span::styled(format!("  {icon} "), Style::default().fg(color)),
                 Span::styled(format!("{label}: "), dimmed_style()),
-                Span::styled(
-                    format!("[{}] ", node.kind),
-                    dimmed_style(),
-                ),
+                Span::styled(format!("[{}] ", node.kind), dimmed_style()),
                 Span::styled(node.display_name.clone(), Style::default().fg(color)),
                 if node.exists {
                     Span::raw("")
@@ -138,10 +132,7 @@ fn format_incoming_relationships(
             lines.push(Line::from(vec![
                 Span::styled("  ← ", Style::default().fg(Color::Blue)),
                 Span::styled(format!("{label}: "), dimmed_style()),
-                Span::styled(
-                    format!("[{}] ", node.kind),
-                    dimmed_style(),
-                ),
+                Span::styled(format!("[{}] ", node.kind), dimmed_style()),
                 Span::styled(node.display_name.clone(), Style::default().fg(Color::Blue)),
             ]));
         }

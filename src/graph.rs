@@ -223,7 +223,13 @@ impl RelationshipGraph {
         if let Some(arr) = field_value.as_sequence() {
             for item in arr {
                 if let Some(item_str) = item.as_str() {
-                    Self::add_single_ref_relationship(item_str, default_kind, rel_type.clone(), entity_map, outgoing);
+                    Self::add_single_ref_relationship(
+                        item_str,
+                        default_kind,
+                        rel_type.clone(),
+                        entity_map,
+                        outgoing,
+                    );
                 }
             }
         }
@@ -235,39 +241,93 @@ impl RelationshipGraph {
         outgoing: &mut Vec<(RelationType, EntityNode)>,
     ) {
         if let Some(owner_ref) = entity.entity.owner() {
-            Self::add_single_ref_relationship(&owner_ref, "group", RelationType::Owner, entity_map, outgoing);
+            Self::add_single_ref_relationship(
+                &owner_ref,
+                "group",
+                RelationType::Owner,
+                entity_map,
+                outgoing,
+            );
         }
 
         if let Some(system_ref) = entity.entity.system() {
-            Self::add_single_ref_relationship(&system_ref, "system", RelationType::System, entity_map, outgoing);
+            Self::add_single_ref_relationship(
+                &system_ref,
+                "system",
+                RelationType::System,
+                entity_map,
+                outgoing,
+            );
         }
 
         if let Some(domain_ref) = entity.entity.domain() {
-            Self::add_single_ref_relationship(&domain_ref, "domain", RelationType::Domain, entity_map, outgoing);
+            Self::add_single_ref_relationship(
+                &domain_ref,
+                "domain",
+                RelationType::Domain,
+                entity_map,
+                outgoing,
+            );
         }
 
         if let Some(parent) = entity.entity.get_spec_string("parent") {
-            Self::add_single_ref_relationship(&parent, "group", RelationType::Parent, entity_map, outgoing);
+            Self::add_single_ref_relationship(
+                &parent,
+                "group",
+                RelationType::Parent,
+                entity_map,
+                outgoing,
+            );
         }
 
         if let Some(children) = entity.entity.spec.get("children") {
-            Self::add_array_ref_relationships(children, "group", RelationType::Child, entity_map, outgoing);
+            Self::add_array_ref_relationships(
+                children,
+                "group",
+                RelationType::Child,
+                entity_map,
+                outgoing,
+            );
         }
 
         if let Some(deps) = entity.entity.spec.get("dependsOn") {
-            Self::add_array_ref_relationships(deps, "component", RelationType::DependsOn, entity_map, outgoing);
+            Self::add_array_ref_relationships(
+                deps,
+                "component",
+                RelationType::DependsOn,
+                entity_map,
+                outgoing,
+            );
         }
 
         if let Some(apis) = entity.entity.spec.get("providesApis") {
-            Self::add_array_ref_relationships(apis, "api", RelationType::ProvidesApi, entity_map, outgoing);
+            Self::add_array_ref_relationships(
+                apis,
+                "api",
+                RelationType::ProvidesApi,
+                entity_map,
+                outgoing,
+            );
         }
 
         if let Some(apis) = entity.entity.spec.get("consumesApis") {
-            Self::add_array_ref_relationships(apis, "api", RelationType::ConsumesApi, entity_map, outgoing);
+            Self::add_array_ref_relationships(
+                apis,
+                "api",
+                RelationType::ConsumesApi,
+                entity_map,
+                outgoing,
+            );
         }
 
         if let Some(groups) = entity.entity.spec.get("memberOf") {
-            Self::add_array_ref_relationships(groups, "group", RelationType::MemberOf, entity_map, outgoing);
+            Self::add_array_ref_relationships(
+                groups,
+                "group",
+                RelationType::MemberOf,
+                entity_map,
+                outgoing,
+            );
         }
     }
 
@@ -282,10 +342,7 @@ impl RelationshipGraph {
     ) {
         let parsed = EntityRef::parse(ref_str, default_kind);
         if parsed.canonical() == center_ref {
-            incoming.push((
-                rel_type,
-                Self::node_from_entity(entity, entity_map),
-            ));
+            incoming.push((rel_type, Self::node_from_entity(entity, entity_map)));
         }
     }
 
@@ -303,10 +360,8 @@ impl RelationshipGraph {
                 if let Some(item_str) = item.as_str() {
                     let parsed = EntityRef::parse(item_str, default_kind);
                     if parsed.canonical() == center_ref {
-                        incoming.push((
-                            rel_type.clone(),
-                            Self::node_from_entity(entity, entity_map),
-                        ));
+                        incoming
+                            .push((rel_type.clone(), Self::node_from_entity(entity, entity_map)));
                         return true;
                     }
                 }
@@ -327,35 +382,99 @@ impl RelationshipGraph {
             }
 
             if let Some(owner) = other.entity.owner() {
-                Self::check_single_ref_incoming(&owner, "group", center_ref, RelationType::Owner, other, entity_map, incoming);
+                Self::check_single_ref_incoming(
+                    &owner,
+                    "group",
+                    center_ref,
+                    RelationType::Owner,
+                    other,
+                    entity_map,
+                    incoming,
+                );
             }
 
             if let Some(system) = other.entity.system() {
-                Self::check_single_ref_incoming(&system, "system", center_ref, RelationType::System, other, entity_map, incoming);
+                Self::check_single_ref_incoming(
+                    &system,
+                    "system",
+                    center_ref,
+                    RelationType::System,
+                    other,
+                    entity_map,
+                    incoming,
+                );
             }
 
             if let Some(domain) = other.entity.domain() {
-                Self::check_single_ref_incoming(&domain, "domain", center_ref, RelationType::Domain, other, entity_map, incoming);
+                Self::check_single_ref_incoming(
+                    &domain,
+                    "domain",
+                    center_ref,
+                    RelationType::Domain,
+                    other,
+                    entity_map,
+                    incoming,
+                );
             }
 
             if let Some(parent) = other.entity.get_spec_string("parent") {
-                Self::check_single_ref_incoming(&parent, "group", center_ref, RelationType::Child, other, entity_map, incoming);
+                Self::check_single_ref_incoming(
+                    &parent,
+                    "group",
+                    center_ref,
+                    RelationType::Child,
+                    other,
+                    entity_map,
+                    incoming,
+                );
             }
 
             if let Some(deps) = other.entity.spec.get("dependsOn") {
-                Self::check_array_ref_incoming(deps, "component", center_ref, RelationType::DependencyOf, other, entity_map, incoming);
+                Self::check_array_ref_incoming(
+                    deps,
+                    "component",
+                    center_ref,
+                    RelationType::DependencyOf,
+                    other,
+                    entity_map,
+                    incoming,
+                );
             }
 
             if let Some(apis) = other.entity.spec.get("consumesApis") {
-                Self::check_array_ref_incoming(apis, "api", center_ref, RelationType::ConsumedBy, other, entity_map, incoming);
+                Self::check_array_ref_incoming(
+                    apis,
+                    "api",
+                    center_ref,
+                    RelationType::ConsumedBy,
+                    other,
+                    entity_map,
+                    incoming,
+                );
             }
 
             if let Some(apis) = other.entity.spec.get("providesApis") {
-                Self::check_array_ref_incoming(apis, "api", center_ref, RelationType::ProvidedBy, other, entity_map, incoming);
+                Self::check_array_ref_incoming(
+                    apis,
+                    "api",
+                    center_ref,
+                    RelationType::ProvidedBy,
+                    other,
+                    entity_map,
+                    incoming,
+                );
             }
 
             if let Some(groups) = other.entity.spec.get("memberOf") {
-                Self::check_array_ref_incoming(groups, "group", center_ref, RelationType::HasMember, other, entity_map, incoming);
+                Self::check_array_ref_incoming(
+                    groups,
+                    "group",
+                    center_ref,
+                    RelationType::HasMember,
+                    other,
+                    entity_map,
+                    incoming,
+                );
             }
         }
     }
@@ -379,11 +498,7 @@ mod tests {
     use serde_yaml::Value;
     use std::path::PathBuf;
 
-    fn create_entity(
-        kind: EntityKind,
-        name: &str,
-        spec: Value,
-    ) -> EntityWithSource {
+    fn create_entity(kind: EntityKind, name: &str, spec: Value) -> EntityWithSource {
         EntityWithSource::new(
             Entity {
                 api_version: "backstage.io/v1alpha1".to_string(),
@@ -891,7 +1006,12 @@ mod tests {
         let api1 = create_api("payments-api", Value::Null);
         let api2 = create_api("users-api", Value::Null);
 
-        let all_entities = vec![provider.clone(), consumer.clone(), api1.clone(), api2.clone()];
+        let all_entities = vec![
+            provider.clone(),
+            consumer.clone(),
+            api1.clone(),
+            api2.clone(),
+        ];
 
         // Provider should have ProvidesApi outgoing
         let provider_graph = RelationshipGraph::build(&provider, &all_entities);

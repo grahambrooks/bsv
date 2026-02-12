@@ -38,19 +38,23 @@ pub fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
             };
 
             let indent = TREE_INDENT.repeat(node.depth);
-            
+
             // Check for validation errors
-            let has_errors = node.entity.as_ref()
+            let has_errors = node
+                .entity
+                .as_ref()
                 .is_some_and(|ews| !ews.validation_errors.is_empty());
-            
+
             let error_indicator = if has_errors {
-                let error_count = node.entity.as_ref()
+                let error_count = node
+                    .entity
+                    .as_ref()
                     .map_or(0, |ews| ews.validation_errors.len());
                 format!("{ERROR_INDICATOR}{error_count}")
             } else {
                 String::new()
             };
-            
+
             let label = format!("{}{}{}{}", indent, prefix, node.label, error_indicator);
 
             let style = if is_selected {

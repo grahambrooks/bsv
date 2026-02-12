@@ -174,12 +174,7 @@ fn format_markdown_line(line: &str) -> Line<'static> {
     }
 
     // Numbered lists
-    if trimmed
-        .chars()
-        .next()
-        .is_some_and(|c| c.is_ascii_digit())
-        && trimmed.contains(". ")
-    {
+    if trimmed.chars().next().is_some_and(|c| c.is_ascii_digit()) && trimmed.contains(". ") {
         return Line::from(Span::styled(
             line.to_string(),
             Style::default().fg(Color::Green),

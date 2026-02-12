@@ -96,10 +96,9 @@ static SCHEMA_STR: &str = include_str!("../schema/catalog-info.json");
 
 /// Compiled JSON Schema validator (initialized once)
 static SCHEMA: Lazy<Validator> = Lazy::new(|| {
-    let schema_json: JsonValue = serde_json::from_str(SCHEMA_STR)
-        .expect("Failed to parse embedded JSON schema");
-    jsonschema::validator_for(&schema_json)
-        .expect("Failed to compile JSON schema")
+    let schema_json: JsonValue =
+        serde_json::from_str(SCHEMA_STR).expect("Failed to parse embedded JSON schema");
+    jsonschema::validator_for(&schema_json).expect("Failed to compile JSON schema")
 });
 
 /// Validate an entity against the Backstage catalog JSON Schema
@@ -120,7 +119,11 @@ pub fn validate_entity(entity: &Entity) -> Vec<ValidationError> {
         .iter_errors(&entity_json)
         .map(|error| {
             let path = error.instance_path().to_string();
-            let path = if path.is_empty() { "/".to_string() } else { path };
+            let path = if path.is_empty() {
+                "/".to_string()
+            } else {
+                path
+            };
             ValidationError {
                 path,
                 message: error.to_string(),
@@ -175,7 +178,11 @@ mod tests {
                 eprintln!("  Message: {}", error.message);
             }
         }
-        assert!(errors.is_empty(), "Valid component should have no errors: found {} errors", errors.len());
+        assert!(
+            errors.is_empty(),
+            "Valid component should have no errors: found {} errors",
+            errors.len()
+        );
     }
 
     #[test]

@@ -23,8 +23,10 @@ use std::{env, io, path::PathBuf};
 use app::{App, InputMode};
 
 fn main() -> Result<()> {
-    let root = env::args()
-        .nth(1).map_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")), PathBuf::from);
+    let root = env::args().nth(1).map_or_else(
+        || env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+        PathBuf::from,
+    );
 
     // Setup terminal
     enable_raw_mode()?;

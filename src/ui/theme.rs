@@ -19,9 +19,7 @@ pub fn selected_style() -> Style {
 }
 
 pub fn error_style() -> Style {
-    Style::default()
-        .fg(Color::Red)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)
 }
 
 pub fn category_style() -> Style {

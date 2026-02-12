@@ -93,7 +93,7 @@ pub struct EntityRef {
 
 impl EntityRef {
     /// Parse an entity reference string with a default kind for the context
-    /// 
+    ///
     /// Format: `[kind:]` `[namespace/]` `name`
     pub fn parse(reference: &str, default_kind: &str) -> Self {
         let (kind, rest, kind_inferred) = if let Some(idx) = reference.find(':') {
@@ -470,15 +470,24 @@ mod tests {
         let index = EntityIndex::build(&entities);
 
         // Test contains() for existing entities
-        assert!(index.contains(&EntityRef::parse("component:default/service-a", "component")));
+        assert!(index.contains(&EntityRef::parse(
+            "component:default/service-a",
+            "component"
+        )));
         assert!(index.contains(&EntityRef::parse("service-a", "component"))); // Inferred
         assert!(index.contains(&EntityRef::parse("api:production/api-b", "api")));
         assert!(index.contains(&EntityRef::parse("system:default/system-c", "system")));
 
         // Test contains() for non-existing entities
-        assert!(!index.contains(&EntityRef::parse("component:default/nonexistent", "component")));
+        assert!(!index.contains(&EntityRef::parse(
+            "component:default/nonexistent",
+            "component"
+        )));
         assert!(!index.contains(&EntityRef::parse("api:default/api-b", "api"))); // Wrong namespace
-        assert!(!index.contains(&EntityRef::parse("component:production/service-a", "component"))); // Wrong namespace
+        assert!(!index.contains(&EntityRef::parse(
+            "component:production/service-a",
+            "component"
+        ))); // Wrong namespace
     }
 
     #[test]
@@ -696,8 +705,8 @@ mod tests {
             },
         ];
 
-        let entity_with_errors = EntityWithSource::new(entity, source_path)
-            .with_validation_errors(errors.clone());
+        let entity_with_errors =
+            EntityWithSource::new(entity, source_path).with_validation_errors(errors.clone());
 
         assert_eq!(entity_with_errors.validation_errors.len(), 2);
         assert_eq!(entity_with_errors.validation_errors[0].path, "spec.owner");
