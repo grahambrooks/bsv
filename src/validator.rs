@@ -22,7 +22,7 @@ pub fn validate_entity(entity: &Entity) -> Vec<ValidationError> {
         Err(e) => {
             return vec![ValidationError {
                 path: "/".to_string(),
-                message: format!("Failed to serialize entity to JSON: {}", e),
+                message: format!("Failed to serialize entity to JSON: {e}"),
             }];
         }
     };

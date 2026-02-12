@@ -230,8 +230,7 @@ fn collect_markdown_files(base_path: &Path, current_path: &Path, files: &mut Vec
                 // Skip hidden directories and build output directories
                 let should_skip = path
                     .file_name()
-                    .map(|n| should_exclude_dir(&n.to_string_lossy()))
-                    .unwrap_or(false);
+                    .is_some_and(|n| should_exclude_dir(&n.to_string_lossy()));
 
                 if !should_skip {
                     collect_markdown_files(base_path, &path, files);
@@ -259,6 +258,5 @@ fn collect_markdown_files(base_path: &Path, current_path: &Path, files: &mut Vec
 
 fn is_markdown_file(path: &Path) -> bool {
     path.extension()
-        .map(|ext| ext == "md" || ext == "markdown")
-        .unwrap_or(false)
+        .is_some_and(|ext| ext == "md" || ext == "markdown")
 }

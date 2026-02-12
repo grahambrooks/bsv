@@ -64,14 +64,12 @@ fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
             
             // Check for validation errors
             let has_errors = node.entity.as_ref()
-                .map(|ews| !ews.validation_errors.is_empty())
-                .unwrap_or(false);
+                .is_some_and(|ews| !ews.validation_errors.is_empty());
             
             let error_indicator = if has_errors {
                 let error_count = node.entity.as_ref()
-                    .map(|ews| ews.validation_errors.len())
-                    .unwrap_or(0);
-                format!(" ⚠ {}", error_count)
+                    .map_or(0, |ews| ews.validation_errors.len());
+                format!(" ⚠ {error_count}")
             } else {
                 String::new()
             };
@@ -403,12 +401,12 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex, all_entiti
             let icon = link
                 .icon
                 .as_ref()
-                .map(|i| format!("[{}] ", i))
+                .map(|i| format!("[{i}] "))
                 .unwrap_or_default();
             lines.push(Line::from(vec![
-                Span::styled(format!("  {}", icon), Style::default().fg(Color::DarkGray)),
+                Span::styled(format!("  {icon}"), Style::default().fg(Color::DarkGray)),
                 Span::styled(title.to_string(), Style::default().fg(Color::Cyan)),
-                Span::styled(format!(" ({})", url), Style::default().fg(Color::DarkGray)),
+                Span::styled(format!(" ({url})"), Style::default().fg(Color::DarkGray)),
             ]));
         }
     }
@@ -443,7 +441,7 @@ fn format_entity_details(ews: &EntityWithSource, index: &EntityIndex, all_entiti
             };
 
             lines.push(Line::from(vec![
-                Span::styled(format!("  {}: ", key), key_style),
+                Span::styled(format!("  {key}: "), key_style),
                 Span::styled(value.clone(), value_style),
                 doc_hint,
             ]));
@@ -633,17 +631,17 @@ fn format_graph(graph: &RelationshipGraph) -> Vec<Line<'static>> {
                 };
 
                 lines.push(Line::from(vec![
-                    Span::styled(format!("  {} ", icon), Style::default().fg(color)),
-                    Span::styled(format!("{}: ", label), Style::default().fg(Color::DarkGray)),
+                    Span::styled(format!("  {icon} "), Style::default().fg(color)),
+                    Span::styled(format!("{label}: "), Style::default().fg(Color::DarkGray)),
                     Span::styled(
                         format!("[{}] ", node.kind),
                         Style::default().fg(Color::DarkGray),
                     ),
                     Span::styled(node.display_name.clone(), Style::default().fg(color)),
-                    if !node.exists {
-                        Span::styled(" (not found)", Style::default().fg(Color::Red))
-                    } else {
+                    if node.exists {
                         Span::raw("")
+                    } else {
+                        Span::styled(" (not found)", Style::default().fg(Color::Red))
                     },
                 ]));
             }
@@ -671,7 +669,7 @@ fn format_graph(graph: &RelationshipGraph) -> Vec<Line<'static>> {
             for node in nodes {
                 lines.push(Line::from(vec![
                     Span::styled("  ← ", Style::default().fg(Color::Blue)),
-                    Span::styled(format!("{}: ", label), Style::default().fg(Color::DarkGray)),
+                    Span::styled(format!("{label}: "), Style::default().fg(Color::DarkGray)),
                     Span::styled(
                         format!("[{}] ", node.kind),
                         Style::default().fg(Color::DarkGray),
@@ -879,8 +877,7 @@ fn format_markdown_line(line: &str) -> Line<'static> {
     if trimmed
         .chars()
         .next()
-        .map(|c| c.is_ascii_digit())
-        .unwrap_or(false)
+        .is_some_and(|c| c.is_ascii_digit())
         && trimmed.contains(". ")
     {
         return Line::from(Span::styled(
@@ -924,13 +921,11 @@ pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
         " Enter: Confirm | Esc: Cancel | Type to search... ".to_string()
     } else if app.show_graph {
         format!(
-            " q: Quit | g: Details | /: Search | r: Reload{} | ↑↓: Navigate ",
-            docs_hint
+            " q: Quit | g: Details | /: Search | r: Reload{docs_hint} | ↑↓: Navigate "
         )
     } else {
         format!(
-            " q: Quit | g: Graph | /: Search | r: Reload{} | ↑↓: Navigate | ←→: Expand/Collapse ",
-            docs_hint
+            " q: Quit | g: Graph | /: Search | r: Reload{docs_hint} | ↑↓: Navigate | ←→: Expand/Collapse "
         )
     };
     let help = Paragraph::new(help_text)

@@ -123,7 +123,7 @@ impl EntityTree {
             });
             root_children.push(domain_cat_id);
 
-            for (domain_name, domain_entities) in domains.iter() {
+            for (domain_name, domain_entities) in &domains {
                 for ews in domain_entities {
                     let domain_id = nodes.len();
                     nodes.push(TreeNode {
@@ -137,7 +137,7 @@ impl EntityTree {
                     nodes[domain_cat_id].children.push(domain_id);
 
                     // Add systems belonging to this domain
-                    for (sys_name, sys_entities) in systems.iter() {
+                    for (sys_name, sys_entities) in &systems {
                         if system_to_domain.get(sys_name) == Some(domain_name) {
                             for sys_ews in sys_entities {
                                 let sys_id = nodes.len();

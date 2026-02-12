@@ -24,9 +24,7 @@ use app::App;
 
 fn main() -> Result<()> {
     let root = env::args()
-        .nth(1)
-        .map(PathBuf::from)
-        .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+        .nth(1).map_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")), PathBuf::from);
 
     // Setup terminal
     enable_raw_mode()?;
@@ -40,7 +38,7 @@ fn main() -> Result<()> {
         Ok(app) => run_app(&mut terminal, app),
         Err(e) => {
             restore_terminal(&mut terminal)?;
-            eprintln!("Error loading entities: {}", e);
+            eprintln!("Error loading entities: {e}");
             return Err(e);
         }
     };
@@ -49,7 +47,7 @@ fn main() -> Result<()> {
     restore_terminal(&mut terminal)?;
 
     if let Err(e) = result {
-        eprintln!("Application error: {}", e);
+        eprintln!("Application error: {e}");
         return Err(e);
     }
 

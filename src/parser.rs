@@ -60,21 +60,19 @@ pub fn discover_catalog_files(root: &Path) -> Vec<std::path::PathBuf> {
             if e.file_type().is_dir() {
                 e.file_name()
                     .to_str()
-                    .map(|name| !should_exclude_dir(name))
-                    .unwrap_or(true)
+                    .map_or(true, |name| !should_exclude_dir(name))
             } else {
                 true
             }
         })
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
         .filter(|e| e.file_type().is_file())
         .filter(|e| {
             e.file_name()
                 .to_str()
-                .map(|name| name == "catalog-info.yaml" || name == "catalog-info.yml")
-                .unwrap_or(false)
+                .is_some_and(|name| name == "catalog-info.yaml" || name == "catalog-info.yml")
         })
-        .map(|e| e.into_path())
+        .map(walkdir::DirEntry::into_path)
         .collect()
 }
 
@@ -125,7 +123,7 @@ pub fn load_all_entities(root: &Path) -> Result<Vec<EntityWithSource>> {
     for file_path in catalog_files {
         match parse_catalog_file(&file_path) {
             Ok(entities) => all_entities.extend(entities),
-            Err(e) => eprintln!("Warning: {}", e),
+            Err(e) => eprintln!("Warning: {e}"),
         }
     }
 
