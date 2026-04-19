@@ -24,4 +24,4 @@ metadata:
 spec:
   type: tool
   lifecycle: experimental
-  owner: grahambrooks
+  owner: user:grahambrooks
