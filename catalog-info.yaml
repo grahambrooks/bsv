@@ -1,70 +1,27 @@
----
-apiVersion: backstage.io/v1alpha1
-kind: Group
-metadata:
-  name: platform-team
-  title: Platform Team
-  description: Team responsible for developer platform and internal tools
-  tags:
-    - team
-spec:
-  type: team
-  profile:
-    displayName: Platform Team
-    email: platform-team@example.com
-  children: []
-
----
-apiVersion: backstage.io/v1alpha1
-kind: System
-metadata:
-  name: developer-tools
-  title: Developer Tools
-  description: Internal developer productivity tools
-  tags:
-    - internal
-    - developer-experience
-spec:
-  owner: group:platform-team
-  domain: developer-platform
-
----
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: bsv
-  title: Backstage Visualizer
+  title: Backstage Entity Visualizer
   description: Backstage Entity Visualizer - Terminal UI for exploring catalog-info.yaml files
   annotations:
+    github.com/project-slug: grahambrooks/bsv
+    backstage.io/source-location: url:https://github.com/grahambrooks/bsv
     backstage.io/techdocs-ref: dir:.
   tags:
     - rust
     - cli
     - tui
     - backstage
+    - catalog
   links:
-    - url: https://github.com/example/bsv
+    - url: https://github.com/grahambrooks/bsv
       title: Repository
       icon: github
+    - url: https://github.com/grahambrooks/bsv/releases
+      title: Releases
+      icon: dashboard
 spec:
-  type: service
+  type: tool
   lifecycle: experimental
-  owner: group:platform-team
-  system: developer-tools
-  providesApis: []
-  consumesApis: []
-
----
-apiVersion: backstage.io/v1alpha1
-kind: Resource
-metadata:
-  name: bsv-binary
-  title: BSV Binary Artifact
-  description: Compiled bsv CLI binary artifact
-  tags:
-    - binary
-    - artifact
-spec:
-  type: artifact
-  owner: group:platform-team
-  system: developer-tools
+  owner: grahambrooks
