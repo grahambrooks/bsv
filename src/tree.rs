@@ -598,6 +598,14 @@ impl EntityTree {
         self.nodes.get(id)
     }
 
+    /// The id of the node whose children include `id`, if any.
+    pub fn parent_of(&self, id: usize) -> Option<usize> {
+        self.nodes
+            .iter()
+            .find(|n| n.children.contains(&id))
+            .map(|n| n.id)
+    }
+
     /// Filter visible nodes by a search query.
     ///
     /// A bare query matches across the label, name, title, description, kind,

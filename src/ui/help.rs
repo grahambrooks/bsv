@@ -15,6 +15,7 @@ const HELP_ROWS: &[(&str, &str)] = &[
     ("← / h", "Collapse node / return focus to tree"),
     ("→ / l / Enter", "Expand node"),
     ("e", "Expand all nodes"),
+    ("c", "Collapse all nodes"),
     ("/", "Search (incremental, case-insensitive)"),
     ("g", "Toggle relationship graph"),
     ("y", "Toggle raw YAML view"),

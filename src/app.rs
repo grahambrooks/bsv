@@ -488,12 +488,35 @@ impl App {
         }
     }
 
+    /// Collapse the selected node if it is expanded; otherwise move the
+    /// selection up to its parent (vim-style `h`).
     pub fn collapse(&mut self) {
-        self.tree_state.expanded.remove(&self.tree_state.selected);
+        let selected = self.tree_state.selected;
+        let expandable = self
+            .tree
+            .get_node(selected)
+            .is_some_and(|n| !n.children.is_empty());
+
+        if expandable && self.tree_state.is_expanded(selected) {
+            self.tree_state.expanded.remove(&selected);
+        } else if let Some(parent) = self.tree.parent_of(selected) {
+            self.tree_state.selected = parent;
+            self.detail_scroll = 0;
+        }
     }
 
     pub fn expand_all(&mut self) {
         self.tree_state.expand_all(&self.tree);
+    }
+
+    /// Collapse the whole tree back to the top-level categories and move the
+    /// selection to the first category.
+    pub fn collapse_all(&mut self) {
+        self.tree_state.expanded.clear();
+        if let Some(&first) = self.tree.root_children.first() {
+            self.tree_state.selected = first;
+        }
+        self.detail_scroll = 0;
     }
 
     pub fn selected_entity(&self) -> Option<&EntityWithSource> {
@@ -694,6 +717,34 @@ mod tests {
             .map(node_identity)
             .collect();
         assert_eq!(expanded_after, expanded_before, "expansion preserved");
+    }
+
+    #[test]
+    fn collapse_all_resets_to_categories() {
+        let mut app = test_app();
+        app.expand_all();
+        assert!(app.visible_nodes().len() > app.tree.root_children.len());
+
+        app.collapse_all();
+        // Only the top-level categories remain visible.
+        assert_eq!(app.visible_nodes().len(), app.tree.root_children.len());
+        assert!(app.tree.root_children.contains(&app.tree_state.selected));
+    }
+
+    #[test]
+    fn collapse_jumps_to_parent_when_already_collapsed() {
+        let mut app = test_app();
+        app.expand_all();
+        // The last visible node is a leaf (deepest child); collapse() on a leaf
+        // should move the selection up to its parent.
+        app.move_end();
+        let leaf = app.tree.get_node(app.tree_state.selected).unwrap();
+        assert!(leaf.children.is_empty(), "last node is a leaf");
+        let parent = app.tree.parent_of(app.tree_state.selected);
+        assert!(parent.is_some(), "leaf has a parent");
+
+        app.collapse();
+        assert_eq!(Some(app.tree_state.selected), parent, "moved to parent");
     }
 
     #[test]

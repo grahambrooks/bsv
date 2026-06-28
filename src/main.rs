@@ -301,6 +301,7 @@ fn handle_normal_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {
             KeyCode::Left | KeyCode::Char('h') => app.collapse(),
             KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => app.toggle_expand(),
             KeyCode::Char('e') => app.expand_all(),
+            KeyCode::Char('c') => app.collapse_all(),
             _ => {}
         }
     }

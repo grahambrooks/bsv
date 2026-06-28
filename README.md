@@ -132,9 +132,10 @@ raw YAML view. The mouse scroll wheel scrolls whichever pane the cursor is over.
 | `↓` / `j` | Move down (tree) / scroll down (panel) |
 | `PgUp` / `PgDn` | Scroll up / down a page |
 | `Home` / `End` | Jump to first / last item (or top/bottom of panel) |
-| `←` / `h` | Collapse node (tree) / return focus to tree (panel) |
+| `←` / `h` | Collapse node, or jump to parent if already collapsed |
 | `→` / `l` / `Enter` | Expand node |
 | `e` | Expand all nodes |
+| `c` | Collapse all nodes |
 | `/` | Start search |
 | `Esc` | Clear search / return focus to tree |
 | `g` | Toggle graph view |
