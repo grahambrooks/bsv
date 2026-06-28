@@ -1,0 +1,40 @@
+tests/watch.rs
+  s_ff8d6f861ed694::t_b254efd7836608 1-42
+  s_ff8d6f861ed694::t_2c5849827987db 43-46
+README.md
+  s_ff8d6f861ed694::t_465b3a35b83301 20
+src/watcher.rs
+  s_ff8d6f861ed694::t_8d009d63e00218 10
+  s_ff8d6f861ed694::t_f3b236a7e3c898 50-52
+  s_ff8d6f861ed694::t_c0bf1a2462649e 1-9,11-49,53-75,77-104,109-117
+  s_ff8d6f861ed694::t_3fffa47f1953ad 76
+  s_ff8d6f861ed694::t_2863ddd3b79b32 105-108
+src/lib.rs
+  s_ff8d6f861ed694::t_74a8e11e008868 29
+Cargo.toml
+  s_ff8d6f861ed694::t_bb6d1660b8f4e8 25
+src/main.rs
+  s_ff8d6f861ed694::t_5c05cf5713205d 20-25
+  s_ff8d6f861ed694::t_1421aa284edd10 153-165,177-196
+  s_ff8d6f861ed694::t_5473c21706896a 124-126,129
+  s_ff8d6f861ed694::t_3888d2ddca3d82 5
+  s_ff8d6f861ed694::t_3f607dd101afde 197
+Cargo.lock
+  s_ff8d6f861ed694::t_cbe5506d4a6ed9 162,307-321,332,557-566,633-641,1016-1035,1180-1199,1318-1329,1365-1383,2216,2516,2958-2966,2973,2985-2999,3006-3008,3010-3013,3016-3021,3028-3033,3040-3045,3058-3063,3070-3075,3082-3087,3094-3099
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "577d28d6d3a514c11758d825391ee0bf3bd1d3dd",
+  "prompts": {},
+  "sessions": {
+    "s_ff8d6f861ed694": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f8c3964d-263e-4fab-8692-418b7637f3f5",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Graham Brooks <graham@grahambrooks.com>"
+    }
+  }
+}
