@@ -1,13 +1,6 @@
-mod app;
-mod docs;
-mod entity;
-mod graph;
-mod parser;
-mod tree;
-mod ui;
-mod validator;
-
 use anyhow::Result;
+use bsv::app::{App, InputMode};
+use bsv::ui;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
     execute,
@@ -19,8 +12,6 @@ use ratatui::{
     Terminal,
 };
 use std::{env, io, path::PathBuf};
-
-use app::{App, InputMode};
 
 const HELP: &str = "\
 bsv - Backstage Entity Visualizer
