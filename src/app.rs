@@ -119,6 +119,16 @@ pub enum InputMode {
     DocsBrowser,
 }
 
+/// Which pane currently receives navigation keys.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Focus {
+    /// The entity tree on the left (default).
+    #[default]
+    Tree,
+    /// The details/graph panel on the right (scrollable).
+    Detail,
+}
+
 pub struct App {
     pub tree: EntityTree,
     pub tree_state: TreeState,
@@ -130,6 +140,9 @@ pub struct App {
     pub entities: Vec<EntityWithSource>,
     pub show_graph: bool,
     pub show_raw: bool,
+    pub focus: Focus,
+    /// Vertical scroll offset (in rows) for the right-hand detail/graph panel.
+    pub detail_scroll: u16,
     pub docs_browser: Option<DocsBrowser>,
     root_path: PathBuf,
 }
@@ -161,6 +174,8 @@ impl App {
             entities,
             show_graph: false,
             show_raw: false,
+            focus: Focus::Tree,
+            detail_scroll: 0,
             docs_browser: None,
             root_path: root.to_path_buf(),
         })
@@ -184,18 +199,67 @@ impl App {
             self.search_active = false;
             self.show_graph = false;
             self.show_raw = false;
+            self.focus = Focus::Tree;
+            self.detail_scroll = 0;
             self.docs_browser = None;
         }
     }
 
     pub fn toggle_graph(&mut self) {
         self.show_graph = !self.show_graph;
+        self.detail_scroll = 0;
     }
 
     /// Toggle the details panel between formatted details and the raw YAML
     /// definition of the selected entity.
     pub fn toggle_raw(&mut self) {
         self.show_raw = !self.show_raw;
+        self.detail_scroll = 0;
+    }
+
+    /// Move keyboard focus between the tree and the detail/graph panel.
+    pub fn toggle_focus(&mut self) {
+        self.focus = match self.focus {
+            Focus::Tree => Focus::Detail,
+            Focus::Detail => Focus::Tree,
+        };
+    }
+
+    /// Return focus to the tree (e.g. on Esc).
+    pub fn focus_tree(&mut self) {
+        self.focus = Focus::Tree;
+    }
+
+    /// Esc behaviour in normal mode: return focus to the tree and clear any
+    /// active search filter.
+    pub fn focus_tree_and_clear_search(&mut self) {
+        self.focus = Focus::Tree;
+        self.clear_search();
+    }
+
+    pub fn is_detail_focused(&self) -> bool {
+        self.focus == Focus::Detail
+    }
+
+    /// Scroll the detail panel up by `rows`, clamping at the top.
+    pub fn scroll_detail_up(&mut self, rows: u16) {
+        self.detail_scroll = self.detail_scroll.saturating_sub(rows);
+    }
+
+    /// Scroll the detail panel down by `rows`, clamping so `max` rows stay the
+    /// furthest the panel can scroll (content length minus visible height).
+    pub fn scroll_detail_down(&mut self, rows: u16, max: u16) {
+        self.detail_scroll = self.detail_scroll.saturating_add(rows).min(max);
+    }
+
+    /// Jump the detail panel to the top.
+    pub fn scroll_detail_home(&mut self) {
+        self.detail_scroll = 0;
+    }
+
+    /// Jump the detail panel to the bottom (`max` = content length minus height).
+    pub fn scroll_detail_end(&mut self, max: u16) {
+        self.detail_scroll = max;
     }
 
     /// Check if the current entity has documentation references
@@ -257,6 +321,7 @@ impl App {
 
         if current_idx > 0 {
             self.tree_state.selected = visible[current_idx - 1].id;
+            self.detail_scroll = 0;
         }
     }
 
@@ -273,6 +338,7 @@ impl App {
 
         if current_idx < visible.len() - 1 {
             self.tree_state.selected = visible[current_idx + 1].id;
+            self.detail_scroll = 0;
         }
     }
 
@@ -290,6 +356,23 @@ impl App {
 
         let new_idx = current_idx.saturating_sub(page.max(1));
         self.tree_state.selected = visible[new_idx].id;
+        self.detail_scroll = 0;
+    }
+
+    /// Select the first visible node.
+    pub fn move_home(&mut self) {
+        if let Some(first) = self.visible_nodes().first() {
+            self.tree_state.selected = first.id;
+            self.detail_scroll = 0;
+        }
+    }
+
+    /// Select the last visible node.
+    pub fn move_end(&mut self) {
+        if let Some(last) = self.visible_nodes().last() {
+            self.tree_state.selected = last.id;
+            self.detail_scroll = 0;
+        }
     }
 
     /// Move the selection down by one page (`page` rows), clamping at the bottom.
@@ -306,6 +389,7 @@ impl App {
 
         let new_idx = (current_idx + page.max(1)).min(visible.len() - 1);
         self.tree_state.selected = visible[new_idx].id;
+        self.detail_scroll = 0;
     }
 
     /// Index of the currently selected node within the visible list, if any.
@@ -394,5 +478,86 @@ impl App {
         } else {
             InputMode::Normal
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    fn test_app() -> App {
+        App::new(Path::new("testdata/large-catalog.yaml")).expect("load test catalog")
+    }
+
+    #[test]
+    fn move_up_at_top_is_clamped() {
+        let mut app = test_app();
+        let first = app.tree_state.selected;
+        app.move_up();
+        assert_eq!(
+            app.tree_state.selected, first,
+            "should not move above the top"
+        );
+    }
+
+    #[test]
+    fn home_and_end_jump_to_bounds() {
+        let mut app = test_app();
+        app.expand_all();
+        app.move_end();
+        let last = app.visible_nodes().last().unwrap().id;
+        assert_eq!(app.tree_state.selected, last);
+        app.move_home();
+        let first = app.visible_nodes().first().unwrap().id;
+        assert_eq!(app.tree_state.selected, first);
+    }
+
+    #[test]
+    fn focus_toggles_between_tree_and_detail() {
+        let mut app = test_app();
+        assert!(!app.is_detail_focused());
+        app.toggle_focus();
+        assert!(app.is_detail_focused());
+        app.toggle_focus();
+        assert!(!app.is_detail_focused());
+        app.toggle_focus();
+        app.focus_tree();
+        assert!(!app.is_detail_focused());
+    }
+
+    #[test]
+    fn detail_scroll_clamps_at_both_ends() {
+        let mut app = test_app();
+        app.scroll_detail_up(5);
+        assert_eq!(app.detail_scroll, 0, "cannot scroll above the top");
+
+        app.scroll_detail_down(10, 3);
+        assert_eq!(app.detail_scroll, 3, "clamped to max");
+
+        app.scroll_detail_down(10, 3);
+        assert_eq!(app.detail_scroll, 3, "stays at max");
+
+        app.scroll_detail_up(1);
+        assert_eq!(app.detail_scroll, 2);
+
+        app.scroll_detail_end(7);
+        assert_eq!(app.detail_scroll, 7);
+
+        app.scroll_detail_home();
+        assert_eq!(app.detail_scroll, 0);
+    }
+
+    #[test]
+    fn navigation_resets_detail_scroll() {
+        let mut app = test_app();
+        app.expand_all();
+        app.detail_scroll = 9;
+        app.move_down();
+        assert_eq!(app.detail_scroll, 0, "moving selection resets panel scroll");
+
+        app.detail_scroll = 9;
+        app.toggle_raw();
+        assert_eq!(app.detail_scroll, 0, "toggling raw resets panel scroll");
     }
 }

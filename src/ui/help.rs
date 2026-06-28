@@ -20,13 +20,17 @@ pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
     } else {
         " | y: Raw YAML"
     };
+    let panel_name = if app.show_graph { "Details" } else { "Graph" };
     let help_text = if app.search_active {
         " Enter: Confirm | Esc: Cancel | Type to search... ".to_string()
-    } else if app.show_graph {
-        format!(" q: Quit | g: Details | /: Search | r: Reload{docs_hint} | ↑↓: Navigate ")
+    } else if app.is_detail_focused() {
+        // Right panel has focus: navigation keys scroll it.
+        format!(
+            " q: Quit | Tab: Focus tree | ↑↓/PgUp/PgDn: Scroll | Home/End: Top/Bottom | g: {panel_name} "
+        )
     } else {
         format!(
-            " q: Quit | g: Graph{raw_hint} | /: Search | r: Reload{docs_hint} | ↑↓: Navigate | PgUp/PgDn: Scroll | ←→: Expand/Collapse "
+            " q: Quit | Tab: Focus panel | g: {panel_name}{raw_hint} | /: Search | r: Reload{docs_hint} | ↑↓: Navigate | ←→: Expand/Collapse "
         )
     };
     let help = Paragraph::new(help_text)

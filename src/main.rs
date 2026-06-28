@@ -115,23 +115,52 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
 }
 
 fn handle_normal_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {
+    // Keys that apply regardless of which pane has focus.
     match key_code {
-        KeyCode::Char('q') => app.quit(),
-        KeyCode::Esc => app.clear_search(),
-        KeyCode::Char('/') => app.start_search(),
-        KeyCode::Up | KeyCode::Char('k') => app.move_up(),
-        KeyCode::Down | KeyCode::Char('j') => app.move_down(),
-        KeyCode::PageUp => app.page_up(visible_height),
-        KeyCode::PageDown => app.page_down(visible_height),
-        KeyCode::Left | KeyCode::Char('h') => app.collapse(),
-        KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => app.toggle_expand(),
-        KeyCode::Char('e') => app.expand_all(),
-        KeyCode::Char('r') => app.reload(),
-        KeyCode::Char('g') => app.toggle_graph(),
-        KeyCode::Char('y') => app.toggle_raw(),
-        KeyCode::Char('d') => app.open_docs(),
+        KeyCode::Char('q') => return app.quit(),
+        KeyCode::Esc => return app.focus_tree_and_clear_search(),
+        KeyCode::Tab => return app.toggle_focus(),
+        KeyCode::Char('/') => return app.start_search(),
+        KeyCode::Char('r') => return app.reload(),
+        KeyCode::Char('g') => return app.toggle_graph(),
+        KeyCode::Char('y') => return app.toggle_raw(),
+        KeyCode::Char('d') => return app.open_docs(),
         _ => {}
     }
+
+    if app.is_detail_focused() {
+        // Navigation keys scroll the right-hand panel.
+        let max = right_panel_max_scroll(app, visible_height);
+        match key_code {
+            KeyCode::Up | KeyCode::Char('k') => app.scroll_detail_up(1),
+            KeyCode::Down | KeyCode::Char('j') => app.scroll_detail_down(1, max),
+            KeyCode::PageUp => app.scroll_detail_up(visible_height as u16),
+            KeyCode::PageDown => app.scroll_detail_down(visible_height as u16, max),
+            KeyCode::Home => app.scroll_detail_home(),
+            KeyCode::End => app.scroll_detail_end(max),
+            KeyCode::Left | KeyCode::Char('h') => app.focus_tree(),
+            _ => {}
+        }
+    } else {
+        // Navigation keys move the tree selection.
+        match key_code {
+            KeyCode::Up | KeyCode::Char('k') => app.move_up(),
+            KeyCode::Down | KeyCode::Char('j') => app.move_down(),
+            KeyCode::PageUp => app.page_up(visible_height),
+            KeyCode::PageDown => app.page_down(visible_height),
+            KeyCode::Home => app.move_home(),
+            KeyCode::End => app.move_end(),
+            KeyCode::Left | KeyCode::Char('h') => app.collapse(),
+            KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => app.toggle_expand(),
+            KeyCode::Char('e') => app.expand_all(),
+            _ => {}
+        }
+    }
+}
+
+/// Furthest the right-hand panel can scroll: content lines minus visible rows.
+fn right_panel_max_scroll(app: &App, visible_height: usize) -> u16 {
+    ui::right_panel_line_count(app).saturating_sub(visible_height) as u16
 }
 
 fn handle_search_mode(app: &mut App, key_code: KeyCode) {

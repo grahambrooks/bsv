@@ -14,6 +14,16 @@ use ratatui::{
 // Re-export the main draw function
 pub use help::draw_help_footer;
 
+/// Number of content lines the right-hand panel would render for the current
+/// selection. Used to clamp detail-panel scrolling.
+pub fn right_panel_line_count(app: &App) -> usize {
+    if app.show_graph {
+        graph::graph_lines(app).map_or(0, |lines| lines.len())
+    } else {
+        details::detail_lines(app).map_or(0, |lines| lines.len())
+    }
+}
+
 pub fn draw(frame: &mut Frame, app: &App) {
     // If docs browser is active, show full-screen docs view
     if let Some(docs_browser) = &app.docs_browser {

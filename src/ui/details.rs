@@ -10,26 +10,40 @@ use ratatui::{
 };
 use std::collections::HashSet;
 
+/// Build the lines shown in the details panel for the current selection, or
+/// `None` when no entity is selected. Used both for rendering and to measure
+/// content height for scrolling.
+pub fn detail_lines(app: &App) -> Option<Vec<Line<'static>>> {
+    app.selected_entity().map(|ews| {
+        if app.show_raw {
+            format_entity_raw(&ews.entity)
+        } else {
+            format_entity_details(ews, &app.entity_index, &app.entities)
+        }
+    })
+}
+
 pub fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
     let title = if app.show_raw {
         " Raw YAML "
     } else {
         " Details "
     };
+    let focused = app.is_detail_focused();
     let block = Block::default()
         .title(title)
         .borders(Borders::ALL)
-        .border_style(border_style());
-
-    if let Some(ews) = app.selected_entity() {
-        let content = if app.show_raw {
-            format_entity_raw(&ews.entity)
+        .border_style(if focused {
+            focused_border_style()
         } else {
-            format_entity_details(ews, &app.entity_index, &app.entities)
-        };
+            border_style()
+        });
+
+    if let Some(content) = detail_lines(app) {
         let paragraph = Paragraph::new(content)
             .block(block)
-            .wrap(Wrap { trim: false });
+            .wrap(Wrap { trim: false })
+            .scroll((app.detail_scroll, 0));
         frame.render_widget(paragraph, area);
     } else {
         let node = app.tree.get_node(app.tree_state.selected);

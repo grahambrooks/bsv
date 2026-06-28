@@ -34,6 +34,13 @@ pub fn border_style() -> Style {
     Style::default().fg(Color::Cyan)
 }
 
+/// Border style for the pane that currently has keyboard focus.
+pub fn focused_border_style() -> Style {
+    Style::default()
+        .fg(Color::Yellow)
+        .add_modifier(Modifier::BOLD)
+}
+
 pub fn label_style() -> Style {
     Style::default().fg(Color::Yellow)
 }

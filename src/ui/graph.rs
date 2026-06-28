@@ -9,17 +9,29 @@ use ratatui::{
     Frame,
 };
 
+/// Build the relationship lines for the selected entity, or `None` when nothing
+/// is selected. Used for rendering and to measure content height for scrolling.
+pub fn graph_lines(app: &App) -> Option<Vec<Line<'static>>> {
+    app.get_relationship_graph()
+        .map(|graph| format_graph(&graph))
+}
+
 pub fn draw_graph(frame: &mut Frame, app: &App, area: Rect) {
+    let border = if app.is_detail_focused() {
+        focused_border_style()
+    } else {
+        Style::default().fg(Color::Magenta)
+    };
     let block = Block::default()
         .title(" Relationships (g to toggle) ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Magenta));
+        .border_style(border);
 
-    if let Some(graph) = app.get_relationship_graph() {
-        let content = format_graph(&graph);
+    if let Some(content) = graph_lines(app) {
         let paragraph = Paragraph::new(content)
             .block(block)
-            .wrap(Wrap { trim: false });
+            .wrap(Wrap { trim: false })
+            .scroll((app.detail_scroll, 0));
         frame.render_widget(paragraph, area);
     } else {
         let paragraph = Paragraph::new("Select an entity to view relationships")

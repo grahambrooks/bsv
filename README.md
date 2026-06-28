@@ -102,16 +102,23 @@ bsv /path/to/catalog-info.yaml
 
 ### Main View
 
+The `Tab` key moves focus between the entity tree (left) and the detail/graph
+panel (right). When the panel is focused, the navigation keys scroll its
+contents instead of moving the tree selection — useful for long entities or the
+raw YAML view.
+
 | Key | Action |
 |-----|--------|
-| `↑` / `k` | Move up |
-| `↓` / `j` | Move down |
+| `Tab` | Switch focus between tree and detail panel |
+| `↑` / `k` | Move up (tree) / scroll up (panel) |
+| `↓` / `j` | Move down (tree) / scroll down (panel) |
 | `PgUp` / `PgDn` | Scroll up / down a page |
-| `←` / `h` | Collapse node |
+| `Home` / `End` | Jump to first / last item (or top/bottom of panel) |
+| `←` / `h` | Collapse node (tree) / return focus to tree (panel) |
 | `→` / `l` / `Enter` | Expand node |
 | `e` | Expand all nodes |
 | `/` | Start search |
-| `Esc` | Clear search / Cancel |
+| `Esc` | Clear search / return focus to tree |
 | `g` | Toggle graph view |
 | `y` | Toggle raw YAML view of the selected entity |
 | `d` | Open documentation browser (when available) |
