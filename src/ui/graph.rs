@@ -91,12 +91,13 @@ fn format_outgoing_relationships(
     )));
 
     // Group by relationship type
-    let mut by_type: std::collections::HashMap<&str, Vec<_>> = std::collections::HashMap::new();
+    let mut by_type: std::collections::BTreeMap<&str, Vec<_>> = std::collections::BTreeMap::new();
     for (rel_type, node) in outgoing {
         by_type.entry(rel_type.label()).or_default().push(node);
     }
 
-    for (label, nodes) in by_type {
+    for (label, mut nodes) in by_type {
+        nodes.sort_by(|a, b| a.display_name.cmp(&b.display_name));
         for node in nodes {
             let (icon, color) = if node.exists {
                 ("→", Color::Green)
@@ -130,7 +131,7 @@ fn format_incoming_relationships(
     )));
 
     // Group by relationship type
-    let mut by_type: std::collections::HashMap<&str, Vec<_>> = std::collections::HashMap::new();
+    let mut by_type: std::collections::BTreeMap<&str, Vec<_>> = std::collections::BTreeMap::new();
     for (rel_type, node) in incoming {
         by_type
             .entry(inverse_label(rel_type))
@@ -138,7 +139,8 @@ fn format_incoming_relationships(
             .push(node);
     }
 
-    for (label, nodes) in by_type {
+    for (label, mut nodes) in by_type {
+        nodes.sort_by(|a, b| a.display_name.cmp(&b.display_name));
         for node in nodes {
             lines.push(Line::from(vec![
                 Span::styled("  ← ", Style::default().fg(Color::Blue)),
