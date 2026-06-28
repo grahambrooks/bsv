@@ -133,7 +133,7 @@ pub fn discover_catalog_files(root: &Path) -> Vec<std::path::PathBuf> {
             if e.file_type().is_dir() {
                 e.file_name()
                     .to_str()
-                    .map_or(true, |name| !should_exclude_dir(name))
+                    .is_none_or(|name| !should_exclude_dir(name))
             } else {
                 true
             }

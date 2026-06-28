@@ -177,8 +177,7 @@ pub fn write_json<W: Write>(entities: &[EntityWithSource], w: &mut W) -> io::Res
             valid: ews.validation_errors.is_empty(),
         })
         .collect();
-    let json =
-        serde_json::to_string_pretty(&view).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let json = serde_json::to_string_pretty(&view).map_err(io::Error::other)?;
     writeln!(w, "{json}")
 }
 
