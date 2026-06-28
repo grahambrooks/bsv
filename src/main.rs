@@ -4,13 +4,16 @@ use bsv::cli::{parse_args, Command};
 use bsv::parser::load_all_entities;
 use bsv::{report, ui};
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, MouseEvent,
+        MouseEventKind,
+    },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     Terminal,
 };
 use std::{env, io, path::PathBuf, process::ExitCode};
@@ -150,26 +153,70 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
             ui::draw_help_footer(frame, &app, chunks[1]);
         })?;
 
-        if let Event::Key(key) = event::read()? {
-            if key.kind == KeyEventKind::Press {
+        let visible_height = terminal.size()?.height.saturating_sub(4) as usize;
+        match event::read()? {
+            Event::Key(key) if key.kind == KeyEventKind::Press => {
                 // While the help overlay is up, any key dismisses it.
                 if app.show_help {
                     app.show_help = false;
                     continue;
                 }
-                let visible_height = terminal.size()?.height.saturating_sub(4) as usize;
                 match app.input_mode() {
                     InputMode::Normal => handle_normal_mode(&mut app, key.code, visible_height),
                     InputMode::Search => handle_search_mode(&mut app, key.code),
                     InputMode::DocsBrowser => handle_docs_mode(&mut app, key.code, visible_height),
                 }
             }
+            Event::Mouse(mouse) => {
+                let size = terminal.size()?;
+                let area = Rect::new(0, 0, size.width, size.height);
+                handle_mouse(&mut app, mouse, area, visible_height);
+            }
+            _ => {}
         }
 
         if app.should_quit {
             return Ok(());
         }
     }
+}
+
+/// Scroll-wheel handling: scroll whichever pane the cursor is over.
+fn handle_mouse(app: &mut App, mouse: MouseEvent, area: Rect, visible_height: usize) {
+    let down = match mouse.kind {
+        MouseEventKind::ScrollDown => true,
+        MouseEventKind::ScrollUp => false,
+        _ => return,
+    };
+
+    // The docs browser is full-screen and owns all scrolling.
+    if let Some(browser) = &mut app.docs_browser {
+        if down {
+            browser.move_down(visible_height);
+        } else {
+            browser.move_up();
+        }
+        return;
+    }
+
+    let layout = ui::panes(area);
+    let over_detail = rect_contains(layout.detail, mouse.column, mouse.row);
+    if over_detail {
+        let max = right_panel_max_scroll(app, visible_height);
+        if down {
+            app.scroll_detail_down(3, max);
+        } else {
+            app.scroll_detail_up(3);
+        }
+    } else if down {
+        app.move_down();
+    } else {
+        app.move_up();
+    }
+}
+
+fn rect_contains(rect: Rect, x: u16, y: u16) -> bool {
+    x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height
 }
 
 fn handle_normal_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {

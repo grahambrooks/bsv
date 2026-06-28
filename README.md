@@ -123,7 +123,7 @@ non-zero status when any problem is found.
 The `Tab` key moves focus between the entity tree (left) and the detail/graph
 panel (right). When the panel is focused, the navigation keys scroll its
 contents instead of moving the tree selection — useful for long entities or the
-raw YAML view.
+raw YAML view. The mouse scroll wheel scrolls whichever pane the cursor is over.
 
 | Key | Action |
 |-----|--------|
