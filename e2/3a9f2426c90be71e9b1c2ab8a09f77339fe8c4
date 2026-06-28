@@ -1,0 +1,24 @@
+scripts/release.sh
+  s_ff8d6f861ed694::t_11dfcbd67e3a32 5-7,15-20
+Makefile
+  s_ff8d6f861ed694::t_0d68b17feb7108 123-124
+  s_ff8d6f861ed694::t_85bb7fb59c88ea 6-7
+RELEASING.md
+  s_ff8d6f861ed694::t_226ede01686988 12-13,16-17,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "e23a9f2426c90be71e9b1c2ab8a09f77339fe8c4",
+  "prompts": {},
+  "sessions": {
+    "s_ff8d6f861ed694": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f8c3964d-263e-4fab-8692-418b7637f3f5",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Graham Brooks <graham@grahambrooks.com>"
+    }
+  }
+}
