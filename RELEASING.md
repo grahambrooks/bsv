@@ -5,15 +5,23 @@ repository — there is no separate Homebrew tap or Scoop bucket repo to maintai
 
 ## Cutting a release
 
-1. Bump the version in `Cargo.toml` and commit it to `main`.
-2. Tag the commit and push the tag:
+Use the Makefile target, which gates on a green build and handles the version
+bump, commit, tag, and push:
 
-   ```bash
-   git tag v$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
-   git push origin --tags
-   ```
+```bash
+make release VERSION=2026.3.0
+```
 
-3. The [`Release`](.github/workflows/release.yml) workflow then:
+This (via [`scripts/release.sh`](scripts/release.sh)):
+
+1. verifies the working tree is clean, you're on an up-to-date `main`, and the
+   tag doesn't already exist;
+2. runs `make check` (format, clippy, tests, shellcheck, packaging smoke test);
+3. bumps the version in `Cargo.toml`, refreshes `Cargo.lock`;
+4. commits `Release vX.Y.Z`, creates an annotated tag, and pushes both.
+
+Pushing the tag triggers the [`Release`](.github/workflows/release.yml) workflow,
+which then:
    - builds release binaries for macOS (Intel + Apple Silicon), Linux (x86_64),
      and Windows (x86_64);
    - packages each as a `.tar.gz`/`.zip` with a matching `.sha256`;
@@ -37,8 +45,12 @@ If you ever need to regenerate the manifests outside CI, download the release
 archives' `.sha256` files into a directory and run:
 
 ```bash
+make update-packaging VERSION=<version> CHECKSUMS=<dir-with-sha256-files>
+# or directly:
 scripts/update-packaging.sh <version> <dir-with-sha256-files>
 ```
+
+`make verify-packaging` smoke-tests the generator without leaving any changes.
 
 The placeholder `0.0.0` / all-zero checksums committed on `main` between releases
 are expected; CI overwrites them on the next tagged build.
