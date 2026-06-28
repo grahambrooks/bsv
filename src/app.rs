@@ -178,7 +178,7 @@ impl App {
         let (entities, load_warnings) = load_catalog(root)?;
         let entity_count = entities.len();
         let entity_index = EntityIndex::build(&entities);
-        let tree = EntityTree::build(entities.clone());
+        let tree = EntityTree::build(&entities);
 
         let mut tree_state = TreeState::new();
         // Expand root categories by default
@@ -233,7 +233,7 @@ impl App {
 
                 self.entity_count = entities.len();
                 self.entity_index = EntityIndex::build(&entities);
-                self.tree = EntityTree::build(entities.clone());
+                self.tree = EntityTree::build(&entities);
                 self.entities = entities;
 
                 // Restore expansion + selection against the rebuilt tree.

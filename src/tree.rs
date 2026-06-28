@@ -34,7 +34,7 @@
 //!     EntityWithSource::new(domain, PathBuf::from("catalog.yaml")),
 //! ];
 //!
-//! let tree = EntityTree::build(entities);
+//! let tree = EntityTree::build(&entities);
 //! let mut state = TreeState::new();
 //!
 //! // Initially only root categories visible
@@ -72,7 +72,7 @@
 //! #     spec: serde_yaml::Value::Null,
 //! # };
 //! # let entities = vec![EntityWithSource::new(component, PathBuf::from("catalog.yaml"))];
-//! let tree = EntityTree::build(entities);
+//! let tree = EntityTree::build(&entities);
 //! let mut state = TreeState::new();
 //! state.expand_all(&tree);
 //! let visible = tree.visible_nodes(&state);
@@ -90,7 +90,7 @@
 //! # use std::path::PathBuf;
 //! # use std::collections::HashMap;
 //! # let entities = vec![];
-//! let tree = EntityTree::build(entities);
+//! let tree = EntityTree::build(&entities);
 //! let mut state = TreeState::new();
 //!
 //! // Toggle expansion state
@@ -183,7 +183,7 @@ impl EntityTree {
     /// Organizes entities as: Domain → System → Components/APIs/Resources.
     /// Entities without a system go under "Other Entities".
     /// Systems without a domain go under "Systems".
-    pub fn build(entities: Vec<EntityWithSource>) -> Self {
+    pub fn build(entities: &[EntityWithSource]) -> Self {
         let mut nodes: Vec<TreeNode> = Vec::new();
         let mut root_children: Vec<usize> = Vec::new();
 
@@ -195,7 +195,7 @@ impl EntityTree {
         let mut ungrouped: Vec<&EntityWithSource> = Vec::new();
 
         // First pass: collect domains and systems
-        for ews in &entities {
+        for ews in entities {
             match ews.entity.kind {
                 EntityKind::Domain => {
                     domains
@@ -217,7 +217,7 @@ impl EntityTree {
         }
 
         // Second pass: group components/APIs/resources by system
-        for ews in &entities {
+        for ews in entities {
             match ews.entity.kind {
                 EntityKind::Domain | EntityKind::System => {}
                 EntityKind::Component | EntityKind::Api | EntityKind::Resource => {
@@ -840,7 +840,7 @@ mod tests {
             create_test_entity(EntityKind::Api, "user-api", Some("auth-system"), None),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // Verify tree structure
         assert_eq!(tree.root_children.len(), 1, "Should have 1 root category");
@@ -898,7 +898,7 @@ mod tests {
             create_test_entity(EntityKind::Api, "user-api", None, None),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
         let mut state = TreeState::new();
 
         // Expand the "Other Entities" category to see the actual entities
@@ -945,7 +945,7 @@ mod tests {
             create_test_entity(EntityKind::Api, "api-a", Some("sys-a"), None),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // Domains category lists domains alphabetically.
         let domains_cat = tree
@@ -1013,7 +1013,7 @@ mod tests {
         );
         let reports_api = create_test_entity(EntityKind::Api, "reports-api", None, None);
 
-        let tree = EntityTree::build(vec![billing, reports_api]);
+        let tree = EntityTree::build(&[billing, reports_api]);
         let mut state = TreeState::new();
         state.expand_all(&tree);
         let visible = tree.visible_nodes(&state);
@@ -1052,7 +1052,7 @@ mod tests {
             ),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
         let mut state = TreeState::new();
 
         // Initially, only root category should be visible (not expanded)
@@ -1118,7 +1118,7 @@ mod tests {
             create_test_entity(EntityKind::Resource, "database", Some("auth-system"), None),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // Category should be depth 0
         let domains_node = &tree.nodes[tree.root_children[0]];
@@ -1149,7 +1149,7 @@ mod tests {
             create_test_entity(EntityKind::Location, "github-org", None, None),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // Groups now get their own category, so we expect "Groups" + "Other Entities".
         let categories: Vec<String> = tree
@@ -1214,7 +1214,7 @@ mod tests {
             create_test_group("team-b", Some("parent-team")),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // Single root category: "Groups"
         assert_eq!(tree.root_children.len(), 1);
@@ -1252,7 +1252,7 @@ mod tests {
             create_test_group("team-a", None),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         let groups_node = &tree.nodes[tree.root_children[0]];
         assert_eq!(groups_node.label, "Groups");
@@ -1275,7 +1275,7 @@ mod tests {
             create_test_group("team-b", Some("parent-team")),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
         let mut state = TreeState::new();
         state.expand_all(&tree);
 
@@ -1312,7 +1312,7 @@ mod tests {
             ),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // Should have one root category: "Systems"
         assert_eq!(tree.root_children.len(), 1);
@@ -1357,7 +1357,7 @@ mod tests {
             ),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
         let mut state = TreeState::new();
 
         state.expand_all(&tree);
@@ -1393,7 +1393,7 @@ mod tests {
             create_test_entity(EntityKind::User, "alice", None, None),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // Should have 3 root categories: Domains, Systems, Other Entities
         assert_eq!(tree.root_children.len(), 3, "Should have 3 root categories");
@@ -1417,7 +1417,7 @@ mod tests {
             None,
         )];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // Valid node ID
         let node = tree.get_node(0);
@@ -1431,7 +1431,7 @@ mod tests {
     #[test]
     fn test_empty_tree() {
         let entities: Vec<EntityWithSource> = vec![];
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         assert_eq!(tree.nodes.len(), 0, "Tree should have no nodes");
         assert_eq!(tree.root_children.len(), 0, "Tree should have no root");
@@ -1449,7 +1449,7 @@ mod tests {
             create_test_entity(EntityKind::Component, "comp1", Some("system1"), None),
         ];
 
-        let tree = EntityTree::build(entities);
+        let tree = EntityTree::build(&entities);
 
         // System should be in "Systems" category (not under "Domains")
         assert_eq!(tree.root_children.len(), 1);
