@@ -231,44 +231,20 @@ impl RelationshipGraph {
         }
     }
 
-    fn add_single_ref_relationship(
-        ref_str: &str,
-        default_kind: &str,
-        rel_type: RelationType,
-        entity_map: &HashMap<String, &EntityWithSource>,
-        outgoing: &mut Vec<(RelationType, EntityNode)>,
-    ) {
-        let parsed = EntityRef::parse(ref_str, default_kind);
-        let exists = entity_map.contains_key(&parsed.canonical());
-        outgoing.push((
-            rel_type,
-            EntityNode {
-                display_name: parsed.name.clone(),
-                kind: parsed.kind.clone(),
-                exists,
-            },
-        ));
-    }
-
-    fn add_array_ref_relationships(
-        field_value: &serde_yaml::Value,
-        default_kind: &str,
-        rel_type: RelationType,
-        entity_map: &HashMap<String, &EntityWithSource>,
-        outgoing: &mut Vec<(RelationType, EntityNode)>,
-    ) {
-        if let Some(arr) = field_value.as_sequence() {
-            for item in arr {
-                if let Some(item_str) = item.as_str() {
-                    Self::add_single_ref_relationship(
-                        item_str,
-                        default_kind,
-                        rel_type.clone(),
-                        entity_map,
-                        outgoing,
-                    );
-                }
-            }
+    /// Map a spec reference field to its outgoing relationship type. Fields that
+    /// aren't surfaced in the graph (e.g. `subcomponentOf`) return `None`.
+    fn relation_for(field: &str) -> Option<RelationType> {
+        match field {
+            "owner" => Some(RelationType::Owner),
+            "system" => Some(RelationType::System),
+            "domain" => Some(RelationType::Domain),
+            "parent" => Some(RelationType::Parent),
+            "children" => Some(RelationType::Child),
+            "dependsOn" => Some(RelationType::DependsOn),
+            "providesApis" => Some(RelationType::ProvidesApi),
+            "consumesApis" => Some(RelationType::ConsumesApi),
+            "memberOf" => Some(RelationType::MemberOf),
+            _ => None,
         }
     }
 
@@ -277,99 +253,12 @@ impl RelationshipGraph {
         entity_map: &HashMap<String, &EntityWithSource>,
         outgoing: &mut Vec<(RelationType, EntityNode)>,
     ) {
-        if let Some(owner_ref) = entity.entity.owner() {
-            Self::add_single_ref_relationship(
-                &owner_ref,
-                "group",
-                RelationType::Owner,
-                entity_map,
-                outgoing,
-            );
-        }
-
-        if let Some(system_ref) = entity.entity.system() {
-            Self::add_single_ref_relationship(
-                &system_ref,
-                "system",
-                RelationType::System,
-                entity_map,
-                outgoing,
-            );
-        }
-
-        if let Some(domain_ref) = entity.entity.domain() {
-            Self::add_single_ref_relationship(
-                &domain_ref,
-                "domain",
-                RelationType::Domain,
-                entity_map,
-                outgoing,
-            );
-        }
-
-        if let Some(parent) = entity.entity.get_spec_string("parent") {
-            Self::add_single_ref_relationship(
-                &parent,
-                "group",
-                RelationType::Parent,
-                entity_map,
-                outgoing,
-            );
-        }
-
-        if let Some(children) = entity.entity.spec.get("children") {
-            Self::add_array_ref_relationships(
-                children,
-                "group",
-                RelationType::Child,
-                entity_map,
-                outgoing,
-            );
-        }
-
-        if let Some(deps) = entity.entity.spec.get("dependsOn") {
-            // `dependsOn` may target Components or Resources; an unqualified ref
-            // should resolve to either, not just Component.
-            if let Some(arr) = deps.as_sequence() {
-                for item in arr {
-                    if let Some(item_str) = item.as_str() {
-                        outgoing.push((
-                            RelationType::DependsOn,
-                            Self::resolve_node(item_str, "component", &["resource"], entity_map),
-                        ));
-                    }
-                }
+        for r in entity.entity.outgoing_references() {
+            if let Some(rel_type) = Self::relation_for(r.field) {
+                let node =
+                    Self::resolve_node(&r.reference, r.default_kind, r.fallback_kinds, entity_map);
+                outgoing.push((rel_type, node));
             }
-        }
-
-        if let Some(apis) = entity.entity.spec.get("providesApis") {
-            Self::add_array_ref_relationships(
-                apis,
-                "api",
-                RelationType::ProvidesApi,
-                entity_map,
-                outgoing,
-            );
-        }
-
-        if let Some(apis) = entity.entity.spec.get("consumesApis") {
-            Self::add_array_ref_relationships(
-                apis,
-                "api",
-                RelationType::ConsumesApi,
-                entity_map,
-                outgoing,
-            );
-        }
-
-        if let Some(groups) = entity.entity.spec.get("memberOf") {
-            Self::add_array_ref_relationships(
-                groups,
-                "group",
-                RelationType::MemberOf,
-                entity_map,
-                outgoing,
-            );
         }
     }
 

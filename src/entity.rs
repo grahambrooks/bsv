@@ -293,6 +293,82 @@ impl Entity {
         let namespace = self.metadata.namespace.as_deref().unwrap_or("default");
         format!("{}:{}/{}", kind, namespace, self.metadata.name)
     }
+
+    /// Read a spec field that holds a sequence of reference strings.
+    fn spec_string_array(&self, key: &str) -> Vec<String> {
+        self.spec
+            .get(key)
+            .and_then(|v| v.as_sequence())
+            .map(|seq| {
+                seq.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// All references this entity declares in its spec.
+    ///
+    /// This is the single source of truth for which spec fields are entity
+    /// references and what kinds they may resolve to. Consumers (relationship
+    /// graph, CI validation) iterate it instead of hard-coding the field list.
+    pub fn outgoing_references(&self) -> Vec<OutgoingRef> {
+        let mut refs = Vec::new();
+
+        let mut push_single = |field, kind, value: Option<String>| {
+            if let Some(v) = value {
+                refs.push(OutgoingRef {
+                    field,
+                    default_kind: kind,
+                    fallback_kinds: &[],
+                    reference: v,
+                });
+            }
+        };
+        push_single("owner", "group", self.owner());
+        push_single("system", "system", self.system());
+        push_single("domain", "domain", self.domain());
+        push_single("parent", "group", self.parent());
+        push_single(
+            "subcomponentOf",
+            "component",
+            self.get_spec_string("subcomponentOf"),
+        );
+
+        // Array reference fields: (spec key, default kind, fallback kinds).
+        const ARRAYS: &[(&str, &str, &[&str])] = &[
+            ("dependsOn", "component", &["resource"]),
+            ("providesApis", "api", &[]),
+            ("consumesApis", "api", &[]),
+            ("memberOf", "group", &[]),
+            ("children", "group", &[]),
+        ];
+        for &(field, kind, fallbacks) in ARRAYS {
+            for reference in self.spec_string_array(field) {
+                refs.push(OutgoingRef {
+                    field,
+                    default_kind: kind,
+                    fallback_kinds: fallbacks,
+                    reference,
+                });
+            }
+        }
+
+        refs
+    }
+}
+
+/// A reference an entity declares in its spec, with the kinds it may resolve to.
+///
+/// `fallback_kinds` are tried only when the reference is unqualified (no
+/// explicit `kind:` prefix), letting e.g. an unqualified `dependsOn` entry
+/// resolve to either a Component or a Resource.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OutgoingRef {
+    pub field: &'static str,
+    pub default_kind: &'static str,
+    pub fallback_kinds: &'static [&'static str],
+    pub reference: String,
 }
 
 /// Index of all loaded entities for reference validation
@@ -758,6 +834,59 @@ mod tests {
 
         // But canonical strings are the same
         assert_eq!(ref1.canonical(), ref4.canonical());
+    }
+
+    #[test]
+    fn test_outgoing_references() {
+        let spec = serde_yaml::from_str(
+            r#"
+            owner: team-a
+            system: payments
+            dependsOn:
+              - resource:default/db
+              - other-svc
+            providesApis:
+              - billing-api
+            subcomponentOf: parent-svc
+            "#,
+        )
+        .unwrap();
+        let entity = Entity {
+            api_version: "backstage.io/v1alpha1".to_string(),
+            kind: EntityKind::Component,
+            metadata: Metadata {
+                name: "billing".to_string(),
+                title: None,
+                namespace: Some("default".to_string()),
+                description: None,
+                labels: HashMap::new(),
+                annotations: HashMap::new(),
+                tags: Vec::new(),
+                links: Vec::new(),
+            },
+            spec,
+        };
+
+        let refs = entity.outgoing_references();
+        let by_field = |field: &str| -> Vec<&OutgoingRef> {
+            refs.iter().filter(|r| r.field == field).collect()
+        };
+
+        assert_eq!(by_field("owner").len(), 1);
+        assert_eq!(by_field("owner")[0].default_kind, "group");
+        assert_eq!(by_field("system").len(), 1);
+        assert_eq!(by_field("subcomponentOf").len(), 1);
+        assert_eq!(by_field("providesApis").len(), 1);
+
+        // dependsOn expands to one entry per reference, with a resource fallback.
+        let deps = by_field("dependsOn");
+        assert_eq!(deps.len(), 2);
+        assert_eq!(deps[0].default_kind, "component");
+        assert_eq!(deps[0].fallback_kinds, &["resource"]);
+
+        // Absent fields contribute nothing.
+        assert!(by_field("consumesApis").is_empty());
+        assert!(by_field("memberOf").is_empty());
     }
 
     #[test]

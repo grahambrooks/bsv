@@ -60,61 +60,6 @@ fn ref_resolves(
     false
 }
 
-/// Collect every reference an entity declares, as (field, kind, fallbacks, ref).
-fn outgoing_refs(
-    ews: &EntityWithSource,
-) -> Vec<(&'static str, &'static str, &'static [&'static str], String)> {
-    let e = &ews.entity;
-    let mut refs: Vec<(&'static str, &'static str, &'static [&'static str], String)> = Vec::new();
-
-    let mut push_single = |field, kind, value: Option<String>| {
-        if let Some(v) = value {
-            refs.push((field, kind, &[][..], v));
-        }
-    };
-    push_single("owner", "group", e.owner());
-    push_single("system", "system", e.system());
-    push_single("domain", "domain", e.domain());
-    push_single("parent", "group", e.parent());
-    push_single(
-        "subcomponentOf",
-        "component",
-        e.get_spec_string("subcomponentOf"),
-    );
-
-    // Array fields: (spec key, default kind, fallbacks).
-    const ARRAYS: &[(&str, &str, &[&str])] = &[
-        ("dependsOn", "component", &["resource"]),
-        ("providesApis", "api", &[]),
-        ("consumesApis", "api", &[]),
-        ("memberOf", "group", &[]),
-        ("children", "group", &[]),
-    ];
-    for &(key, kind, fallbacks) in ARRAYS {
-        if let Some(seq) = e.spec.get(key).and_then(|v| v.as_sequence()) {
-            for item in seq.iter().filter_map(|v| v.as_str()) {
-                // SAFETY of 'static: keys/kinds are string literals.
-                let field: &'static str = key_to_static(key);
-                refs.push((field, kind, fallbacks, item.to_string()));
-            }
-        }
-    }
-
-    refs
-}
-
-/// Map a known spec key to its `'static` form for report labels.
-fn key_to_static(key: &str) -> &'static str {
-    match key {
-        "dependsOn" => "dependsOn",
-        "providesApis" => "providesApis",
-        "consumesApis" => "consumesApis",
-        "memberOf" => "memberOf",
-        "children" => "children",
-        _ => "reference",
-    }
-}
-
 /// Build a [`Report`] from already-parsed entities.
 pub fn build_report(entities: &[EntityWithSource]) -> Report {
     let index = EntityIndex::build(entities);
@@ -132,12 +77,12 @@ pub fn build_report(entities: &[EntityWithSource]) -> Report {
             });
         }
 
-        for (field, kind, fallbacks, reference) in outgoing_refs(ews) {
-            if !ref_resolves(&index, &reference, kind, fallbacks) {
+        for r in ews.entity.outgoing_references() {
+            if !ref_resolves(&index, &r.reference, r.default_kind, r.fallback_kinds) {
                 broken_refs.push(BrokenRef {
                     from: from.clone(),
-                    field,
-                    reference,
+                    field: r.field,
+                    reference: r.reference,
                 });
             }
         }
