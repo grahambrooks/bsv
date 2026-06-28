@@ -2,6 +2,7 @@ use anyhow::Result;
 use bsv::app::{App, InputMode};
 use bsv::cli::{parse_args, Command};
 use bsv::parser::load_all_entities;
+use bsv::watcher::CatalogWatcher;
 use bsv::{report, ui};
 use crossterm::{
     event::{
@@ -16,7 +17,12 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     Terminal,
 };
-use std::{env, io, path::PathBuf, process::ExitCode};
+use std::{
+    env, io,
+    path::PathBuf,
+    process::ExitCode,
+    time::{Duration, Instant},
+};
 
 const HELP: &str = "\
 bsv - Backstage Entity Visualizer
@@ -115,9 +121,12 @@ fn run_tui(root: PathBuf) -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    // Watch the catalog for changes (best-effort; the UI still works without it).
+    let watcher = CatalogWatcher::new(&root).ok();
+
     // Create app and run
     let result = match App::new(&root) {
-        Ok(app) => run_app(&mut terminal, app),
+        Ok(app) => run_app(&mut terminal, app, watcher),
         Err(e) => {
             restore_terminal(&mut terminal)?;
             eprintln!("Error loading entities: {e}");
@@ -141,7 +150,19 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Re
     Ok(())
 }
 
-fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) -> Result<()> {
+/// How long the catalog must be quiet after a change before we reload, so a
+/// burst of editor writes coalesces into a single reload.
+const RELOAD_DEBOUNCE: Duration = Duration::from_millis(300);
+/// How often the event loop wakes to service the file watcher when idle.
+const POLL_INTERVAL: Duration = Duration::from_millis(200);
+
+fn run_app(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    mut app: App,
+    watcher: Option<CatalogWatcher>,
+) -> Result<()> {
+    let mut pending_reload: Option<Instant> = None;
+
     loop {
         terminal.draw(|frame| {
             let chunks = Layout::default()
@@ -152,6 +173,27 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
             ui::draw(frame, &app);
             ui::draw_help_footer(frame, &app, chunks[1]);
         })?;
+
+        // Note a filesystem change; the actual reload is debounced below.
+        if let Some(w) = &watcher {
+            if w.drain() {
+                pending_reload = Some(Instant::now());
+            }
+        }
+        if let Some(since) = pending_reload {
+            if since.elapsed() >= RELOAD_DEBOUNCE {
+                app.reload();
+                pending_reload = None;
+            }
+        }
+
+        // Poll so the loop also wakes to service the watcher while idle.
+        if !event::poll(POLL_INTERVAL)? {
+            if app.should_quit {
+                return Ok(());
+            }
+            continue;
+        }
 
         let visible_height = terminal.size()?.height.saturating_sub(4) as usize;
         match event::read()? {

@@ -26,3 +26,4 @@ pub mod report;
 pub mod tree;
 pub mod ui;
 pub mod validator;
+pub mod watcher;

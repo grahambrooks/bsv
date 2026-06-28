@@ -17,7 +17,7 @@ A terminal UI application for exploring and visualizing [Backstage](https://back
 - **Documentation Browser**: View TechDocs and ADR markdown files directly in the terminal
 - **Reference Validation**: Highlights missing or invalid entity references
 - **Search**: Incremental `/` search across name, title, description, kind, owner, and tags, with field-scoped queries (`owner:team-a`, `tag:backend`, `kind:component`, `system:…`, `domain:…`)
-- **Live Reload**: Refresh catalog data without restarting
+- **Live Reload**: Automatically re-reads the catalog when files change on disk (or press `r` to reload manually), preserving your expansion and selection
 
 ## Installation
 
