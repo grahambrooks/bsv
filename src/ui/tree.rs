@@ -86,10 +86,19 @@ pub fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
         })
         .collect();
 
-    let title = if app.search_query.is_empty() {
-        format!(" Entities ({}) ", app.entity_count)
+    let error_count = app.error_count();
+    let error_suffix = if error_count > 0 {
+        format!(" ⚠ {error_count}")
     } else {
-        format!(" Entities ({}/{}) ", row_count, app.entity_count)
+        String::new()
+    };
+    let title = if app.search_query.is_empty() {
+        format!(" Entities ({}){error_suffix} ", app.entity_count)
+    } else {
+        format!(
+            " Entities ({}/{}){error_suffix} ",
+            row_count, app.entity_count
+        )
     };
 
     let tree_block = Block::default()

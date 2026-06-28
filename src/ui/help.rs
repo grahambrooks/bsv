@@ -25,6 +25,10 @@ const HELP_ROWS: &[(&str, &str)] = &[
     ("y", "Toggle raw YAML view"),
     ("d", "Open documentation browser (when available)"),
     ("r", "Reload catalog from disk"),
+    (
+        "x / X",
+        "Jump to next / previous entity with validation errors",
+    ),
     ("?", "Toggle this help"),
     ("Esc", "Clear search / close / return focus to tree"),
     ("q", "Quit"),
@@ -110,8 +114,13 @@ pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
             " q: Quit | ?: Help | Tab: Focus tree | ↑↓/PgUp/PgDn: Scroll | Home/End: Top/Bottom | g: {panel_name}{warn_hint} "
         )
     } else {
+        let err_hint = if app.error_count() > 0 {
+            " | x: Errors"
+        } else {
+            ""
+        };
         format!(
-            " q: Quit | ?: Help | Tab: Focus | g: {panel_name}{raw_hint} | /: Search | r: Reload{docs_hint} | ↑↓: Nav | ←→: Expand{warn_hint} "
+            " q: Quit | ?: Help | Tab: Focus | g: {panel_name}{raw_hint} | /: Search | r: Reload{docs_hint}{err_hint} | ↑↓: Nav | ←→: Expand{warn_hint} "
         )
     };
     let help = Paragraph::new(help_text)

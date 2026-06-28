@@ -438,18 +438,79 @@ impl App {
         let Some(id) = target else {
             return false;
         };
+        self.reveal_node(id);
+        true
+    }
 
-        // Expand every ancestor so the node is visible.
+    /// Select a node by id, expanding its ancestors so it is visible.
+    fn reveal_node(&mut self, id: usize) {
         let mut current = id;
         while let Some(parent) = self.tree.parent_of(current) {
             self.tree_state.expanded.insert(parent);
             current = parent;
         }
-
         self.tree_state.selected = id;
         self.detail_scroll = 0;
         self.graph_selection = 0;
-        true
+    }
+
+    /// Ids of entity nodes that have validation errors, in display order.
+    fn error_node_ids(&self) -> Vec<usize> {
+        self.tree
+            .dfs_order()
+            .into_iter()
+            .filter(|&id| {
+                self.tree
+                    .get_node(id)
+                    .and_then(|n| n.entity.as_ref())
+                    .is_some_and(|ews| !ews.validation_errors.is_empty())
+            })
+            .collect()
+    }
+
+    /// Number of entities with validation errors.
+    pub fn error_count(&self) -> usize {
+        self.error_node_ids().len()
+    }
+
+    /// Select the next entity (in display order) that has validation errors,
+    /// wrapping around. No-op if there are no errors.
+    pub fn next_error(&mut self) {
+        let errors = self.error_node_ids();
+        if errors.is_empty() {
+            return;
+        }
+        let order = self.tree.dfs_order();
+        let current_pos = order.iter().position(|&id| id == self.tree_state.selected);
+        let target = match current_pos {
+            Some(pos) => errors
+                .iter()
+                .find(|&&id| order.iter().position(|&o| o == id).unwrap_or(0) > pos)
+                .copied()
+                .unwrap_or(errors[0]),
+            None => errors[0],
+        };
+        self.reveal_node(target);
+    }
+
+    /// Select the previous entity with validation errors, wrapping around.
+    pub fn prev_error(&mut self) {
+        let errors = self.error_node_ids();
+        if errors.is_empty() {
+            return;
+        }
+        let order = self.tree.dfs_order();
+        let current_pos = order.iter().position(|&id| id == self.tree_state.selected);
+        let target = match current_pos {
+            Some(pos) => errors
+                .iter()
+                .rev()
+                .find(|&&id| order.iter().position(|&o| o == id).unwrap_or(0) < pos)
+                .copied()
+                .unwrap_or_else(|| *errors.last().unwrap()),
+            None => *errors.last().unwrap(),
+        };
+        self.reveal_node(target);
     }
 
     /// Get visible nodes filtered by search query if active.
@@ -890,6 +951,53 @@ mod tests {
             app.selected_entity().unwrap().entity.ref_key(),
             target,
             "selection jumped to the related entity"
+        );
+    }
+
+    #[test]
+    fn error_navigation_cycles_through_entities_with_errors() {
+        // The large catalog intentionally contains entities with validation
+        // errors (e.g. APIs missing required fields).
+        let mut app = test_app();
+        let count = app.error_count();
+        assert!(count > 0, "test catalog has validation errors");
+
+        // next_error lands on an entity that actually has errors, and reveals it.
+        app.next_error();
+        let first = app.selected_entity().expect("selected an entity");
+        assert!(
+            !first.validation_errors.is_empty(),
+            "landed on an entity with errors"
+        );
+        let first_ref = first.entity.ref_key();
+        assert!(
+            app.visible_nodes().iter().any(|n| n
+                .entity
+                .as_ref()
+                .is_some_and(|e| e.entity.ref_key() == first_ref)),
+            "the error entity is revealed"
+        );
+
+        // Stepping forward then back returns to the same entity.
+        app.next_error();
+        app.prev_error();
+        assert_eq!(
+            app.selected_entity().unwrap().entity.ref_key(),
+            first_ref,
+            "next then prev returns to the same error"
+        );
+    }
+
+    #[test]
+    fn error_navigation_is_noop_without_errors() {
+        let mut app = App::new(Path::new("testdata/catalog-info.yaml")).unwrap();
+        // catalog-info.yaml has a single valid component (no schema errors).
+        assert_eq!(app.error_count(), 0);
+        let before = app.tree_state.selected;
+        app.next_error();
+        assert_eq!(
+            app.tree_state.selected, before,
+            "no movement without errors"
         );
     }
 

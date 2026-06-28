@@ -606,6 +606,25 @@ impl EntityTree {
             .map(|n| n.id)
     }
 
+    /// All node ids in display order, ignoring expansion state. Useful for
+    /// ordered traversals (e.g. jumping between entities with errors).
+    pub fn dfs_order(&self) -> Vec<usize> {
+        let mut order = Vec::with_capacity(self.nodes.len());
+        for &root_id in &self.root_children {
+            self.collect_dfs(root_id, &mut order);
+        }
+        order
+    }
+
+    fn collect_dfs(&self, id: usize, order: &mut Vec<usize>) {
+        order.push(id);
+        if let Some(node) = self.nodes.get(id) {
+            for &child_id in &node.children {
+                self.collect_dfs(child_id, order);
+            }
+        }
+    }
+
     /// Filter visible nodes by a search query.
     ///
     /// A bare query matches across the label, name, title, description, kind,

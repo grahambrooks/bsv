@@ -146,6 +146,7 @@ you walk the dependency graph hop by hop.
 | `y` | Toggle raw YAML view of the selected entity |
 | `d` | Open documentation browser (when available) |
 | `r` | Reload catalog |
+| `x` / `X` | Jump to next / previous entity with validation errors |
 | `?` | Show keyboard shortcut help |
 | `q` | Quit |
 

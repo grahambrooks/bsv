@@ -270,6 +270,8 @@ fn handle_normal_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {
         KeyCode::Tab => return app.toggle_focus(),
         KeyCode::Char('/') => return app.start_search(),
         KeyCode::Char('r') => return app.reload(),
+        KeyCode::Char('x') => return app.next_error(),
+        KeyCode::Char('X') => return app.prev_error(),
         KeyCode::Char('g') => return app.toggle_graph(),
         KeyCode::Char('y') => return app.toggle_raw(),
         KeyCode::Char('d') => return app.open_docs(),
