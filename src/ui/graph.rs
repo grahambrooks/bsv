@@ -12,8 +12,7 @@ use ratatui::{
 /// Build the relationship lines for the selected entity, or `None` when nothing
 /// is selected. Used for rendering and to measure content height for scrolling.
 pub fn graph_lines(app: &App) -> Option<Vec<Line<'static>>> {
-    app.get_relationship_graph()
-        .map(|graph| format_graph(&graph))
+    app.relationship_graph().map(|graph| format_graph(&graph))
 }
 
 pub fn draw_graph(frame: &mut Frame, app: &App, area: Rect) {

@@ -111,7 +111,9 @@ use crate::graph::RelationshipGraph;
 use crate::parser::load_catalog;
 use crate::tree::{EntityTree, TreeNode, TreeState};
 use anyhow::Result;
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 pub enum InputMode {
     Normal,
@@ -148,6 +150,9 @@ pub struct App {
     /// Whether the keyboard-shortcut help overlay is showing.
     pub show_help: bool,
     pub docs_browser: Option<DocsBrowser>,
+    /// Lazily-built relationship graph for the selected entity, keyed by its
+    /// node id so it is reused across frames instead of rebuilt every draw.
+    relationship_cache: RefCell<Option<(usize, Rc<RelationshipGraph>)>>,
     root_path: PathBuf,
 }
 
@@ -183,6 +188,7 @@ impl App {
             load_warnings,
             show_help: false,
             docs_browser: None,
+            relationship_cache: RefCell::new(None),
             root_path: root.to_path_buf(),
         })
     }
@@ -210,6 +216,7 @@ impl App {
                 self.detail_scroll = 0;
                 self.load_warnings = warnings;
                 self.docs_browser = None;
+                self.relationship_cache = RefCell::new(None);
             }
             Err(e) => {
                 // Keep the current catalog but make the failure visible.
@@ -311,9 +318,26 @@ impl App {
         self.docs_browser.is_some()
     }
 
+    /// Relationship graph for the selected entity, cached by node id so it is
+    /// built once per selection rather than on every render frame.
+    pub fn relationship_graph(&self) -> Option<Rc<RelationshipGraph>> {
+        let selected = self.tree_state.selected;
+
+        if let Some((id, graph)) = self.relationship_cache.borrow().as_ref() {
+            if *id == selected {
+                return Some(Rc::clone(graph));
+            }
+        }
+
+        let entity = self.selected_entity()?;
+        let graph = Rc::new(RelationshipGraph::build(entity, &self.entities));
+        *self.relationship_cache.borrow_mut() = Some((selected, Rc::clone(&graph)));
+        Some(graph)
+    }
+
+    /// Owned copy of the relationship graph for the selected entity.
     pub fn get_relationship_graph(&self) -> Option<RelationshipGraph> {
-        self.selected_entity()
-            .map(|e| RelationshipGraph::build(e, &self.entities))
+        self.relationship_graph().map(|g| (*g).clone())
     }
 
     /// Get visible nodes filtered by search query if active.
@@ -564,6 +588,43 @@ mod tests {
 
         app.scroll_detail_home();
         assert_eq!(app.detail_scroll, 0);
+    }
+
+    /// Advance the selection to the next node that has an entity, returning true
+    /// if one was found.
+    fn select_next_entity(app: &mut App) -> bool {
+        for _ in 0..app.visible_nodes().len() {
+            if app.selected_entity().is_some() {
+                return true;
+            }
+            app.move_down();
+        }
+        app.selected_entity().is_some()
+    }
+
+    #[test]
+    fn relationship_graph_is_cached_and_invalidated() {
+        let mut app = test_app();
+        app.expand_all();
+        assert!(select_next_entity(&mut app), "found an entity to select");
+
+        let g1 = app.relationship_graph().expect("graph for entity");
+        let g2 = app.relationship_graph().expect("graph for entity");
+        assert!(
+            Rc::ptr_eq(&g1, &g2),
+            "same selection reuses the cached graph"
+        );
+        let first_center = g1.center.display_name.clone();
+
+        // Move to a different entity; the cache must rebuild for the new center.
+        app.move_down();
+        assert!(select_next_entity(&mut app), "found a second entity");
+        let g3 = app.relationship_graph().expect("graph for second entity");
+        assert!(!Rc::ptr_eq(&g1, &g3), "new selection rebuilds the graph");
+        assert_ne!(
+            first_center, g3.center.display_name,
+            "graph centre tracks the selection"
+        );
     }
 
     #[test]
