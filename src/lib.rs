@@ -17,10 +17,12 @@
 //! - [`ui`] — ratatui rendering
 
 pub mod app;
+pub mod cli;
 pub mod docs;
 pub mod entity;
 pub mod graph;
 pub mod parser;
+pub mod report;
 pub mod tree;
 pub mod ui;
 pub mod validator;

@@ -1,6 +1,8 @@
 use anyhow::Result;
 use bsv::app::{App, InputMode};
-use bsv::ui;
+use bsv::cli::{parse_args, Command};
+use bsv::parser::load_all_entities;
+use bsv::{report, ui};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
     execute,
@@ -11,41 +13,98 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     Terminal,
 };
-use std::{env, io, path::PathBuf};
+use std::{env, io, path::PathBuf, process::ExitCode};
 
 const HELP: &str = "\
 bsv - Backstage Entity Visualizer
 
 USAGE:
     bsv [PATH]
+    bsv --validate [PATH]
+    bsv --json [PATH]
 
 ARGS:
     PATH    Directory to scan for catalog-info.yaml files, or a single
             catalog file. Defaults to the current directory.
 
 OPTIONS:
+    --validate       Validate the catalog and print a report (non-zero exit on errors)
+    --json           Print the parsed catalog as JSON
     -h, --help       Print this help and exit
     -V, --version    Print version and exit";
 
-fn main() -> Result<()> {
-    // Handle informational flags before taking over the terminal.
-    match env::args().nth(1).as_deref() {
-        Some("-V" | "--version") => {
-            println!("bsv {}", env!("CARGO_PKG_VERSION"));
-            return Ok(());
-        }
-        Some("-h" | "--help") => {
+fn main() -> ExitCode {
+    let args: Vec<String> = env::args().collect();
+    match parse_args(&args) {
+        Command::Help => {
             println!("{HELP}");
-            return Ok(());
+            ExitCode::SUCCESS
         }
-        _ => {}
+        Command::Version => {
+            println!("bsv {}", env!("CARGO_PKG_VERSION"));
+            ExitCode::SUCCESS
+        }
+        Command::Unknown(opt) => {
+            eprintln!("error: unknown option '{opt}'\n");
+            eprintln!("{HELP}");
+            ExitCode::from(2)
+        }
+        Command::Validate(path) => run_validate(resolve_path(path)),
+        Command::Json(path) => run_json(resolve_path(path)),
+        Command::Run(path) => match run_tui(resolve_path(path)) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => {
+                eprintln!("Application error: {e}");
+                ExitCode::FAILURE
+            }
+        },
     }
+}
 
-    let root = env::args().nth(1).map_or_else(
-        || env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-        PathBuf::from,
-    );
+fn resolve_path(path: Option<PathBuf>) -> PathBuf {
+    path.unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+}
 
+/// Validate the catalog and print a report; exit non-zero on any problem.
+fn run_validate(root: PathBuf) -> ExitCode {
+    let entities = match load_all_entities(&root) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("error: failed to load catalog from {}: {e}", root.display());
+            return ExitCode::FAILURE;
+        }
+    };
+    let report = report::build_report(&entities);
+    let mut stdout = io::stdout().lock();
+    let _ = report::write_report(&report, &mut stdout);
+    if report.has_errors() {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+/// Print the parsed catalog as JSON.
+fn run_json(root: PathBuf) -> ExitCode {
+    let entities = match load_all_entities(&root) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("error: failed to load catalog from {}: {e}", root.display());
+            return ExitCode::FAILURE;
+        }
+    };
+    let mut stdout = io::stdout().lock();
+    match report::write_json(&entities, &mut stdout) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("error: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// Launch the interactive terminal UI.
+fn run_tui(root: PathBuf) -> Result<()> {
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -65,13 +124,7 @@ fn main() -> Result<()> {
 
     // Restore terminal
     restore_terminal(&mut terminal)?;
-
-    if let Err(e) = result {
-        eprintln!("Application error: {e}");
-        return Err(e);
-    }
-
-    Ok(())
+    result
 }
 
 fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {

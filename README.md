@@ -98,6 +98,24 @@ bsv /path/to/backstage/catalog
 bsv /path/to/catalog-info.yaml
 ```
 
+### Non-interactive (CI) mode
+
+`bsv` can validate a catalog without launching the UI, which is useful in CI
+pipelines:
+
+```bash
+# Validate: prints schema errors and broken references, exits non-zero on failure
+bsv --validate /path/to/catalog
+
+# Dump the parsed catalog as JSON (for piping into jq, etc.)
+bsv --json /path/to/catalog
+```
+
+`--validate` reports both JSON Schema violations and references that don't
+resolve to a known entity (owner, system, domain, `dependsOn`, `providesApis`,
+`consumesApis`, `memberOf`, group `parent`/`children`, …), and exits with a
+non-zero status when any problem is found.
+
 ## Keyboard Shortcuts
 
 ### Main View
