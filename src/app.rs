@@ -129,6 +129,7 @@ pub struct App {
     pub entity_index: EntityIndex,
     pub entities: Vec<EntityWithSource>,
     pub show_graph: bool,
+    pub show_raw: bool,
     pub docs_browser: Option<DocsBrowser>,
     root_path: PathBuf,
 }
@@ -159,6 +160,7 @@ impl App {
             entity_index,
             entities,
             show_graph: false,
+            show_raw: false,
             docs_browser: None,
             root_path: root.to_path_buf(),
         })
@@ -181,12 +183,19 @@ impl App {
             self.search_query.clear();
             self.search_active = false;
             self.show_graph = false;
+            self.show_raw = false;
             self.docs_browser = None;
         }
     }
 
     pub fn toggle_graph(&mut self) {
         self.show_graph = !self.show_graph;
+    }
+
+    /// Toggle the details panel between formatted details and the raw YAML
+    /// definition of the selected entity.
+    pub fn toggle_raw(&mut self) {
+        self.show_raw = !self.show_raw;
     }
 
     /// Check if the current entity has documentation references

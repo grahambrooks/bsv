@@ -137,6 +137,7 @@ fn handle_normal_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {
         KeyCode::Char('e') => app.expand_all(),
         KeyCode::Char('r') => app.reload(),
         KeyCode::Char('g') => app.toggle_graph(),
+        KeyCode::Char('y') => app.toggle_raw(),
         KeyCode::Char('d') => app.open_docs(),
         _ => {}
     }

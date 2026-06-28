@@ -11,13 +11,22 @@ use ratatui::{
 use std::collections::HashSet;
 
 pub fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
+    let title = if app.show_raw {
+        " Raw YAML "
+    } else {
+        " Details "
+    };
     let block = Block::default()
-        .title(" Details ")
+        .title(title)
         .borders(Borders::ALL)
         .border_style(border_style());
 
     if let Some(ews) = app.selected_entity() {
-        let content = format_entity_details(ews, &app.entity_index, &app.entities);
+        let content = if app.show_raw {
+            format_entity_raw(&ews.entity)
+        } else {
+            format_entity_details(ews, &app.entity_index, &app.entities)
+        };
         let paragraph = Paragraph::new(content)
             .block(block)
             .wrap(Wrap { trim: false });
@@ -158,6 +167,21 @@ fn format_entity_details(
     }
 
     lines
+}
+
+/// Render the entity as its raw YAML definition, re-serialized from the parsed
+/// model. Returns a single error line if serialization somehow fails.
+fn format_entity_raw(entity: &crate::entity::Entity) -> Vec<Line<'static>> {
+    match serde_yaml::to_string(entity) {
+        Ok(yaml) => yaml
+            .lines()
+            .map(|line| Line::from(Span::raw(line.to_string())))
+            .collect(),
+        Err(e) => vec![Line::from(Span::styled(
+            format!("Failed to serialize entity: {e}"),
+            error_style(),
+        ))],
+    }
 }
 
 fn format_group_details(

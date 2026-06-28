@@ -113,6 +113,7 @@ bsv /path/to/catalog-info.yaml
 | `/` | Start search |
 | `Esc` | Clear search / Cancel |
 | `g` | Toggle graph view |
+| `y` | Toggle raw YAML view of the selected entity |
 | `d` | Open documentation browser (when available) |
 | `r` | Reload catalog |
 | `q` | Quit |
