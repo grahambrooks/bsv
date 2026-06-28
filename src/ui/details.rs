@@ -199,12 +199,18 @@ fn format_relationships(
     index: &EntityIndex,
     lines: &mut Vec<Line<'static>>,
 ) {
-    // (spec key, default kind, heading)
-    const FIELDS: &[(&str, &str, &str)] = &[
-        ("dependsOn", "component", "Depends on"),
-        ("providesApis", "api", "Provides APIs"),
-        ("consumesApis", "api", "Consumes APIs"),
+    // Which spec reference fields to show here and how, in display order. The
+    // default kinds and the references themselves come from the central
+    // Entity::outgoing_references() so this stays in sync with graph/validation.
+    // (field, heading, single-valued)
+    const DISPLAY: &[(&str, &str, bool)] = &[
+        ("subcomponentOf", "Subcomponent of", true),
+        ("dependsOn", "Depends on", false),
+        ("providesApis", "Provides APIs", false),
+        ("consumesApis", "Consumes APIs", false),
     ];
+
+    let all = entity.outgoing_references();
 
     let mut emitted_header = false;
     let mut ensure_header = |lines: &mut Vec<Line<'static>>| {
@@ -218,35 +224,32 @@ fn format_relationships(
         }
     };
 
-    // subcomponentOf is a single reference.
-    if let Some(parent) = entity.get_spec_string("subcomponentOf") {
-        ensure_header(lines);
-        let ref_line = format_entity_ref(&parent, "component", index);
-        lines.push(Line::from(
-            std::iter::once(Span::styled("Subcomponent of: ", label_style()))
-                .chain(ref_line)
-                .collect::<Vec<_>>(),
-        ));
-    }
-
-    for (key, default_kind, heading) in FIELDS {
-        let Some(seq) = entity.spec.get(key).and_then(|v| v.as_sequence()) else {
+    for &(field, heading, single) in DISPLAY {
+        let entries: Vec<_> = all.iter().filter(|r| r.field == field).collect();
+        if entries.is_empty() {
             continue;
-        };
-        let refs: Vec<&str> = seq.iter().filter_map(|v| v.as_str()).collect();
-        if refs.is_empty() {
+        }
+        ensure_header(lines);
+
+        if single {
+            let r = entries[0];
+            let ref_line = format_entity_ref(&r.reference, r.default_kind, index);
+            lines.push(Line::from(
+                std::iter::once(Span::styled(format!("{heading}: "), label_style()))
+                    .chain(ref_line)
+                    .collect::<Vec<_>>(),
+            ));
             continue;
         }
 
-        ensure_header(lines);
         lines.push(Line::from(Span::styled(
-            format!("{heading} ({}):", refs.len()),
+            format!("{heading} ({}):", entries.len()),
             label_style(),
         )));
-        let last = refs.len() - 1;
-        for (i, r) in refs.iter().enumerate() {
+        let last = entries.len() - 1;
+        for (i, r) in entries.iter().enumerate() {
             let connector = if i == last { "└─ " } else { "├─ " };
-            let ref_line = format_entity_ref(r, default_kind, index);
+            let ref_line = format_entity_ref(&r.reference, r.default_kind, index);
             lines.push(Line::from(
                 std::iter::once(Span::styled(connector.to_string(), dimmed_style()))
                     .chain(ref_line)
