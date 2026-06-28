@@ -249,8 +249,8 @@ impl EntityTree {
             });
             root_children.push(domain_cat_id);
 
-            for (domain_name, domain_entities) in &domains {
-                for ews in domain_entities {
+            for domain_name in sorted_keys(&domains) {
+                for ews in &domains[domain_name] {
                     let domain_id = nodes.len();
                     nodes.push(TreeNode {
                         id: domain_id,
@@ -262,43 +262,46 @@ impl EntityTree {
                     });
                     nodes[domain_cat_id].children.push(domain_id);
 
-                    // Add systems belonging to this domain
-                    for (sys_name, sys_entities) in &systems {
-                        if system_to_domain.get(sys_name) == Some(domain_name) {
-                            for sys_ews in sys_entities {
-                                let sys_id = nodes.len();
-                                nodes.push(TreeNode {
-                                    id: sys_id,
-                                    label: format!(
-                                        "{}: {}",
-                                        EntityKind::System,
-                                        sys_ews.entity.display_name()
-                                    ),
-                                    depth: 2,
-                                    entity: Some((*sys_ews).clone()),
-                                    children: Vec::new(),
-                                    is_category: false,
-                                });
-                                nodes[domain_id].children.push(sys_id);
+                    // Add systems belonging to this domain, alphabetically.
+                    let mut sys_names: Vec<&String> = systems
+                        .keys()
+                        .filter(|s| system_to_domain.get(*s) == Some(domain_name))
+                        .collect();
+                    sys_names.sort();
+                    for sys_name in sys_names {
+                        for sys_ews in &systems[sys_name] {
+                            let sys_id = nodes.len();
+                            nodes.push(TreeNode {
+                                id: sys_id,
+                                label: format!(
+                                    "{}: {}",
+                                    EntityKind::System,
+                                    sys_ews.entity.display_name()
+                                ),
+                                depth: 2,
+                                entity: Some((*sys_ews).clone()),
+                                children: Vec::new(),
+                                is_category: false,
+                            });
+                            nodes[domain_id].children.push(sys_id);
 
-                                // Add components of this system
-                                if let Some(comps) = components_by_system.get(sys_name) {
-                                    for comp_ews in comps {
-                                        let comp_id = nodes.len();
-                                        nodes.push(TreeNode {
-                                            id: comp_id,
-                                            label: format!(
-                                                "{}: {}",
-                                                comp_ews.entity.kind,
-                                                comp_ews.entity.display_name()
-                                            ),
-                                            depth: 3,
-                                            entity: Some((*comp_ews).clone()),
-                                            children: Vec::new(),
-                                            is_category: false,
-                                        });
-                                        nodes[sys_id].children.push(comp_id);
-                                    }
+                            // Add components of this system, sorted.
+                            if let Some(comps) = components_by_system.get(sys_name) {
+                                for comp_ews in sorted_entities(comps) {
+                                    let comp_id = nodes.len();
+                                    nodes.push(TreeNode {
+                                        id: comp_id,
+                                        label: format!(
+                                            "{}: {}",
+                                            comp_ews.entity.kind,
+                                            comp_ews.entity.display_name()
+                                        ),
+                                        depth: 3,
+                                        entity: Some(comp_ews.clone()),
+                                        children: Vec::new(),
+                                        is_category: false,
+                                    });
+                                    nodes[sys_id].children.push(comp_id);
                                 }
                             }
                         }
@@ -308,17 +311,16 @@ impl EntityTree {
         }
 
         // Systems without domains (or with non-existent domain references)
-        let orphan_systems: Vec<_> = systems
-            .iter()
-            .filter(|(name, _)| {
-                match system_to_domain.get(*name) {
-                    None => true,                                            // No domain reference
-                    Some(domain_name) => !domains.contains_key(domain_name), // Domain doesn't exist
-                }
+        let mut orphan_system_names: Vec<&String> = systems
+            .keys()
+            .filter(|name| match system_to_domain.get(*name) {
+                None => true,                                            // No domain reference
+                Some(domain_name) => !domains.contains_key(domain_name), // Domain doesn't exist
             })
             .collect();
+        orphan_system_names.sort();
 
-        if !orphan_systems.is_empty() {
+        if !orphan_system_names.is_empty() {
             let sys_cat_id = nodes.len();
             nodes.push(TreeNode {
                 id: sys_cat_id,
@@ -330,8 +332,8 @@ impl EntityTree {
             });
             root_children.push(sys_cat_id);
 
-            for (sys_name, sys_entities) in orphan_systems {
-                for ews in sys_entities {
+            for sys_name in orphan_system_names {
+                for ews in &systems[sys_name] {
                     let sys_id = nodes.len();
                     nodes.push(TreeNode {
                         id: sys_id,
@@ -343,9 +345,9 @@ impl EntityTree {
                     });
                     nodes[sys_cat_id].children.push(sys_id);
 
-                    // Add components of this system
+                    // Add components of this system, sorted.
                     if let Some(comps) = components_by_system.get(sys_name) {
-                        for comp_ews in comps {
+                        for comp_ews in sorted_entities(comps) {
                             let comp_id = nodes.len();
                             nodes.push(TreeNode {
                                 id: comp_id,
@@ -355,7 +357,7 @@ impl EntityTree {
                                     comp_ews.entity.display_name()
                                 ),
                                 depth: 2,
-                                entity: Some((*comp_ews).clone()),
+                                entity: Some(comp_ews.clone()),
                                 children: Vec::new(),
                                 is_category: false,
                             });
@@ -453,7 +455,7 @@ impl EntityTree {
             });
             root_children.push(other_cat_id);
 
-            for ews in ungrouped {
+            for ews in sorted_entities(&ungrouped) {
                 let ent_id = nodes.len();
                 nodes.push(TreeNode {
                     id: ent_id,
@@ -611,6 +613,26 @@ impl EntityTree {
             .filter(|n| node_matches(n, &query))
             .collect()
     }
+}
+
+/// Keys of a string-keyed map, sorted, for deterministic iteration.
+fn sorted_keys<V>(map: &HashMap<String, V>) -> Vec<&String> {
+    let mut keys: Vec<&String> = map.keys().collect();
+    keys.sort();
+    keys
+}
+
+/// Entities sorted by kind then display name, for stable tree ordering.
+fn sorted_entities<'a>(entities: &[&'a EntityWithSource]) -> Vec<&'a EntityWithSource> {
+    let mut sorted: Vec<&'a EntityWithSource> = entities.to_vec();
+    sorted.sort_by(|a, b| {
+        a.entity
+            .kind
+            .to_string()
+            .cmp(&b.entity.kind.to_string())
+            .then_with(|| a.entity.display_name().cmp(&b.entity.display_name()))
+    });
+    sorted
 }
 
 /// Recognized `field:` scopes for search.
@@ -820,15 +842,24 @@ mod tests {
             "Should have 2 children (component + api)"
         );
 
-        // Find user-service component
-        let component_node = &tree.nodes[system_node.children[0]];
-        assert!(component_node.label.contains("user-service"));
+        // Both the component and the API are present (order is sorted by kind,
+        // so the API precedes the Component — assert by lookup, not index).
+        let children: Vec<&TreeNode> = system_node
+            .children
+            .iter()
+            .map(|&id| &tree.nodes[id])
+            .collect();
+        let component_node = children
+            .iter()
+            .find(|n| n.label.contains("user-service"))
+            .expect("user-service present");
         assert_eq!(component_node.depth, 3);
         assert_eq!(component_node.children.len(), 0);
 
-        // Find user-api
-        let api_node = &tree.nodes[system_node.children[1]];
-        assert!(api_node.label.contains("user-api"));
+        let api_node = children
+            .iter()
+            .find(|n| n.label.contains("user-api"))
+            .expect("user-api present");
         assert_eq!(api_node.depth, 3);
     }
 
@@ -873,6 +904,56 @@ mod tests {
         // Filter by category name
         let filtered = EntityTree::filter_by_search(visible, "Other");
         assert_eq!(filtered.len(), 1, "Should match 'Other Entities' category");
+    }
+
+    #[test]
+    fn test_tree_ordering_is_sorted() {
+        // Build with domains, systems and components deliberately out of order.
+        let entities = vec![
+            create_test_entity(EntityKind::Domain, "zeta", None, None),
+            create_test_entity(EntityKind::Domain, "alpha", None, None),
+            create_test_entity(EntityKind::System, "sys-b", None, Some("alpha")),
+            create_test_entity(EntityKind::System, "sys-a", None, Some("alpha")),
+            create_test_entity(EntityKind::Component, "comp-z", Some("sys-a"), None),
+            create_test_entity(EntityKind::Api, "api-a", Some("sys-a"), None),
+        ];
+
+        let tree = EntityTree::build(entities);
+
+        // Domains category lists domains alphabetically.
+        let domains_cat = tree
+            .root_children
+            .iter()
+            .map(|&id| &tree.nodes[id])
+            .find(|n| n.label == "Domains")
+            .unwrap();
+        let domain_labels: Vec<&str> = domains_cat
+            .children
+            .iter()
+            .map(|&id| tree.nodes[id].label.as_str())
+            .collect();
+        assert!(domain_labels[0].contains("alpha"));
+        assert!(domain_labels[1].contains("zeta"));
+
+        // Systems under alpha are sorted.
+        let alpha = &tree.nodes[domains_cat.children[0]];
+        let sys_labels: Vec<&str> = alpha
+            .children
+            .iter()
+            .map(|&id| tree.nodes[id].label.as_str())
+            .collect();
+        assert!(sys_labels[0].contains("sys-a"));
+        assert!(sys_labels[1].contains("sys-b"));
+
+        // Components under sys-a are sorted by kind then name: API before Component.
+        let sys_a = &tree.nodes[alpha.children[0]];
+        let comp_labels: Vec<&str> = sys_a
+            .children
+            .iter()
+            .map(|&id| tree.nodes[id].label.as_str())
+            .collect();
+        assert!(comp_labels[0].contains("api-a"), "API sorts first");
+        assert!(comp_labels[1].contains("comp-z"));
     }
 
     #[test]
