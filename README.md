@@ -1,4 +1,4 @@
-# bsv - Backstage Entity Visualizer
+# Backstage Visualizer
 
 A terminal UI application for exploring and visualizing [Backstage](https://backstage.io/) software catalog entities.
 
