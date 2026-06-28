@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame,
 };
 
@@ -18,26 +18,41 @@ pub fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
     // Draw search bar
     draw_search(frame, app, chunks[0]);
 
-    let visible_nodes = app.visible_nodes();
+    // During search the visible list is filtered flat, so branch connectors
+    // would be meaningless; fall back to plain rows. Otherwise draw the proper
+    // tree with connector prefixes. Both paths preserve visible_nodes() order so
+    // selection and scrolling stay aligned.
+    let rows: Vec<(&_, String)> = if app.search_query.is_empty() {
+        app.tree
+            .visible_rows(&app.tree_state)
+            .into_iter()
+            .map(|row| (row.node, row.prefix))
+            .collect()
+    } else {
+        app.visible_nodes()
+            .into_iter()
+            .map(|node| (node, "  ".repeat(node.depth)))
+            .collect()
+    };
+    let row_count = rows.len();
 
-    let items: Vec<ListItem> = visible_nodes
+    let items: Vec<ListItem> = rows
         .iter()
-        .map(|node| {
+        .map(|(node, tree_prefix)| {
             let is_selected = node.id == app.tree_state.selected;
             let has_children = !node.children.is_empty();
             let is_expanded = app.tree_state.is_expanded(node.id);
 
-            let prefix = if has_children {
+            // Expand/collapse marker; leaves get nothing (the connector aligns them).
+            let marker = if has_children {
                 if is_expanded {
                     EXPANDED_SYMBOL
                 } else {
                     COLLAPSED_SYMBOL
                 }
             } else {
-                LEAF_INDENT
+                ""
             };
-
-            let indent = TREE_INDENT.repeat(node.depth);
 
             // Check for validation errors
             let has_errors = node
@@ -55,7 +70,7 @@ pub fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
                 String::new()
             };
 
-            let label = format!("{}{}{}{}", indent, prefix, node.label, error_indicator);
+            let label = format!("{tree_prefix}{marker}{}{error_indicator}", node.label);
 
             let style = if is_selected {
                 selected_style()
@@ -74,7 +89,7 @@ pub fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
     let title = if app.search_query.is_empty() {
         format!(" Entities ({}) ", app.entity_count)
     } else {
-        format!(" Entities ({}/{}) ", visible_nodes.len(), app.entity_count)
+        format!(" Entities ({}/{}) ", row_count, app.entity_count)
     };
 
     let tree_block = Block::default()
@@ -82,9 +97,15 @@ pub fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {
         .borders(Borders::ALL)
         .border_style(border_style());
 
-    let list = List::new(items).block(tree_block);
+    let list = List::new(items)
+        .block(tree_block)
+        .highlight_style(selected_style());
 
-    frame.render_widget(list, chunks[1]);
+    // Drive scrolling via ListState so the selected row stays on screen.
+    let mut list_state = ListState::default();
+    list_state.select(app.selected_visible_index());
+
+    frame.render_stateful_widget(list, chunks[1], &mut list_state);
 }
 
 fn draw_search(frame: &mut Frame, app: &App, area: Rect) {

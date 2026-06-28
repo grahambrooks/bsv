@@ -267,6 +267,47 @@ impl App {
         }
     }
 
+    /// Move the selection up by one page (`page` rows), clamping at the top.
+    pub fn page_up(&mut self, page: usize) {
+        let visible = self.visible_nodes();
+        if visible.is_empty() {
+            return;
+        }
+
+        let current_idx = visible
+            .iter()
+            .position(|n| n.id == self.tree_state.selected)
+            .unwrap_or(0);
+
+        let new_idx = current_idx.saturating_sub(page.max(1));
+        self.tree_state.selected = visible[new_idx].id;
+    }
+
+    /// Move the selection down by one page (`page` rows), clamping at the bottom.
+    pub fn page_down(&mut self, page: usize) {
+        let visible = self.visible_nodes();
+        if visible.is_empty() {
+            return;
+        }
+
+        let current_idx = visible
+            .iter()
+            .position(|n| n.id == self.tree_state.selected)
+            .unwrap_or(0);
+
+        let new_idx = (current_idx + page.max(1)).min(visible.len() - 1);
+        self.tree_state.selected = visible[new_idx].id;
+    }
+
+    /// Index of the currently selected node within the visible list, if any.
+    ///
+    /// Used to drive scrolling so the selected row stays on screen.
+    pub fn selected_visible_index(&self) -> Option<usize> {
+        self.visible_nodes()
+            .iter()
+            .position(|n| n.id == self.tree_state.selected)
+    }
+
     pub fn toggle_expand(&mut self) {
         if let Some(node) = self.tree.get_node(self.tree_state.selected) {
             if !node.children.is_empty() {

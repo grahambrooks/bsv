@@ -83,7 +83,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
             if key.kind == KeyEventKind::Press {
                 let visible_height = terminal.size()?.height.saturating_sub(4) as usize;
                 match app.input_mode() {
-                    InputMode::Normal => handle_normal_mode(&mut app, key.code),
+                    InputMode::Normal => handle_normal_mode(&mut app, key.code, visible_height),
                     InputMode::Search => handle_search_mode(&mut app, key.code),
                     InputMode::DocsBrowser => handle_docs_mode(&mut app, key.code, visible_height),
                 }
@@ -96,13 +96,15 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
     }
 }
 
-fn handle_normal_mode(app: &mut App, key_code: KeyCode) {
+fn handle_normal_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {
     match key_code {
         KeyCode::Char('q') => app.quit(),
         KeyCode::Esc => app.clear_search(),
         KeyCode::Char('/') => app.start_search(),
         KeyCode::Up | KeyCode::Char('k') => app.move_up(),
         KeyCode::Down | KeyCode::Char('j') => app.move_down(),
+        KeyCode::PageUp => app.page_up(visible_height),
+        KeyCode::PageDown => app.page_down(visible_height),
         KeyCode::Left | KeyCode::Char('h') => app.collapse(),
         KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => app.toggle_expand(),
         KeyCode::Char('e') => app.expand_all(),

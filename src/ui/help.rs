@@ -21,7 +21,7 @@ pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
         format!(" q: Quit | g: Details | /: Search | r: Reload{docs_hint} | ↑↓: Navigate ")
     } else {
         format!(
-            " q: Quit | g: Graph | /: Search | r: Reload{docs_hint} | ↑↓: Navigate | ←→: Expand/Collapse "
+            " q: Quit | g: Graph | /: Search | r: Reload{docs_hint} | ↑↓: Navigate | PgUp/PgDn: Scroll | ←→: Expand/Collapse "
         )
     };
     let help = Paragraph::new(help_text)

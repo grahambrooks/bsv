@@ -8,6 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
 };
+use std::collections::HashSet;
 
 pub fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
@@ -186,31 +187,74 @@ fn format_group_details(
         )));
     }
 
-    // Child groups
-    if let Some(children) = entity.spec.get("children") {
-        if let Some(children_arr) = children.as_sequence() {
-            if !children_arr.is_empty() {
-                lines.push(Line::from(""));
-                lines.push(Line::from(Span::styled(
-                    format!("Child Groups ({}):", children_arr.len()),
-                    label_style(),
-                )));
-                for child in children_arr {
-                    if let Some(child_str) = child.as_str() {
-                        let ref_line = format_entity_ref(child_str, "group", index);
-                        lines.push(Line::from(
-                            std::iter::once(Span::styled("  └─ ", dimmed_style()))
-                                .chain(ref_line)
-                                .collect::<Vec<_>>(),
-                        ));
-                    }
-                }
-            }
-        }
+    // Child groups, rendered as a tree mirroring the main CLI tree view.
+    let children = entity.children();
+    if !children.is_empty() {
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled(
+            format!("Child Groups ({}):", children.len()),
+            label_style(),
+        )));
+
+        let mut visited: HashSet<String> = HashSet::new();
+        visited.insert(entity.ref_key());
+        format_child_group_tree(&children, index, all_entities, "", &mut visited, lines);
     }
 
     // Members (users who have memberOf pointing to this group)
     format_group_members(entity, all_entities, lines);
+}
+
+/// Render a group's child hierarchy recursively with box-drawing connectors,
+/// matching the look of the main tree view. Each child reference is shown with
+/// the same validation colouring as other entity refs; descendants are nested
+/// under their parent using `├─`, `└─`, and `│` continuation lines.
+fn format_child_group_tree(
+    children: &[String],
+    index: &EntityIndex,
+    all_entities: &[EntityWithSource],
+    prefix: &str,
+    visited: &mut HashSet<String>,
+    lines: &mut Vec<Line<'static>>,
+) {
+    let last = children.len().saturating_sub(1);
+    for (i, child) in children.iter().enumerate() {
+        let is_last = i == last;
+        let connector = if is_last { "└─ " } else { "├─ " };
+
+        let ref_line = format_entity_ref(child, "group", index);
+        lines.push(Line::from(
+            std::iter::once(Span::styled(
+                format!("{prefix}{connector}"),
+                dimmed_style(),
+            ))
+            .chain(ref_line)
+            .collect::<Vec<_>>(),
+        ));
+
+        // Recurse into the child's own children, if we can resolve it and have
+        // not already visited it (guards against reference cycles).
+        let child_name = EntityRef::parse(child, "group").name;
+        if let Some(child_entity) = all_entities.iter().find(|e| {
+            matches!(e.entity.kind, EntityKind::Group) && e.entity.metadata.name == child_name
+        }) {
+            if visited.insert(child_entity.entity.ref_key()) {
+                let grandchildren = child_entity.entity.children();
+                if !grandchildren.is_empty() {
+                    let child_prefix =
+                        format!("{prefix}{}", if is_last { "   " } else { "│  " });
+                    format_child_group_tree(
+                        &grandchildren,
+                        index,
+                        all_entities,
+                        &child_prefix,
+                        visited,
+                        lines,
+                    );
+                }
+            }
+        }
+    }
 }
 
 fn format_group_members(

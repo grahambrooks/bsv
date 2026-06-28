@@ -3,8 +3,6 @@ use ratatui::style::{Color, Modifier, Style};
 // Tree symbols
 pub const EXPANDED_SYMBOL: &str = "[-] ";
 pub const COLLAPSED_SYMBOL: &str = "[+] ";
-pub const LEAF_INDENT: &str = "    ";
-pub const TREE_INDENT: &str = "  ";
 pub const ERROR_INDICATOR: &str = " ⚠ ";
 
 // Doc browser indicators

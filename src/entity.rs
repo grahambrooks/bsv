@@ -257,6 +257,24 @@ impl Entity {
         self.get_spec_string("domain")
     }
 
+    /// Parent group reference (`spec.parent`), if any. Used to nest child groups.
+    pub fn parent(&self) -> Option<String> {
+        self.get_spec_string("parent")
+    }
+
+    /// Child group references (`spec.children`), if any.
+    pub fn children(&self) -> Vec<String> {
+        self.spec
+            .get("children")
+            .and_then(|v| v.as_sequence())
+            .map(|seq| {
+                seq.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     pub fn owner(&self) -> Option<String> {
         self.get_spec_string("owner")
     }

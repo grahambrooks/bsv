@@ -110,7 +110,7 @@
 //! - [`TreeNode`] - Single node in the tree (category or entity)
 //! - [`TreeState`] - Tracks which nodes are expanded and selected
 
-use crate::entity::{EntityKind, EntityWithSource};
+use crate::entity::{EntityKind, EntityRef, EntityWithSource};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
@@ -127,6 +127,13 @@ pub struct TreeNode {
 pub struct EntityTree {
     pub nodes: Vec<TreeNode>,
     pub root_children: Vec<usize>,
+}
+
+/// A visible tree node paired with its rendered branch-connector prefix.
+#[derive(Debug)]
+pub struct VisibleRow<'a> {
+    pub node: &'a TreeNode,
+    pub prefix: String,
 }
 
 #[derive(Debug)]
@@ -220,6 +227,8 @@ impl EntityTree {
                         ungrouped.push(ews);
                     }
                 }
+                // Groups are organised into their own parent/child hierarchy below.
+                EntityKind::Group => {}
                 _ => {
                     ungrouped.push(ews);
                 }
@@ -357,6 +366,80 @@ impl EntityTree {
             }
         }
 
+        // Groups: nest child groups under their parents (spec.parent / spec.children).
+        let group_map: HashMap<String, EntityWithSource> = entities
+            .iter()
+            .filter(|ews| ews.entity.kind == EntityKind::Group)
+            .map(|ews| (ews.entity.metadata.name.clone(), ews.clone()))
+            .collect();
+
+        if !group_map.is_empty() {
+            // Resolve each group's effective parent, preferring spec.parent and
+            // falling back to any group that lists it in spec.children.
+            let mut parent_of: HashMap<String, String> = HashMap::new();
+            for (name, ews) in &group_map {
+                if let Some(parent) = ews.entity.parent() {
+                    let parent_name = EntityRef::parse(&parent, "group").name;
+                    if group_map.contains_key(&parent_name) {
+                        parent_of.insert(name.clone(), parent_name);
+                    }
+                }
+            }
+            for (name, ews) in &group_map {
+                for child in ews.entity.children() {
+                    let child_name = EntityRef::parse(&child, "group").name;
+                    if group_map.contains_key(&child_name) {
+                        parent_of.entry(child_name).or_insert_with(|| name.clone());
+                    }
+                }
+            }
+
+            // Invert into a parent -> sorted children map for stable ordering.
+            let mut children_of: HashMap<String, Vec<String>> = HashMap::new();
+            for (child, parent) in &parent_of {
+                children_of
+                    .entry(parent.clone())
+                    .or_default()
+                    .push(child.clone());
+            }
+            for kids in children_of.values_mut() {
+                kids.sort();
+            }
+
+            // Root groups have no resolved parent within the catalog.
+            let mut roots: Vec<String> = group_map
+                .keys()
+                .filter(|name| !parent_of.contains_key(*name))
+                .cloned()
+                .collect();
+            roots.sort();
+
+            let group_cat_id = nodes.len();
+            nodes.push(TreeNode {
+                id: group_cat_id,
+                label: "Groups".to_string(),
+                depth: 0,
+                entity: None,
+                children: Vec::new(),
+                is_category: true,
+            });
+            root_children.push(group_cat_id);
+
+            let mut visited: HashSet<String> = HashSet::new();
+            for root_name in &roots {
+                if let Some(child_id) = Self::build_group_subtree(
+                    &mut nodes,
+                    &group_map,
+                    &children_of,
+                    root_name,
+                    1,
+                    &mut visited,
+                ) {
+                    nodes[group_cat_id].children.push(child_id);
+                }
+            }
+        }
+
         // Ungrouped entities
         if !ungrouped.is_empty() {
             let other_cat_id = nodes.len();
@@ -390,6 +473,45 @@ impl EntityTree {
         }
     }
 
+    /// Recursively build a group node and its descendants, returning the new node id.
+    ///
+    /// `visited` guards against cycles in malformed parent/child references.
+    fn build_group_subtree(
+        nodes: &mut Vec<TreeNode>,
+        group_map: &HashMap<String, EntityWithSource>,
+        children_of: &HashMap<String, Vec<String>>,
+        name: &str,
+        depth: usize,
+        visited: &mut HashSet<String>,
+    ) -> Option<usize> {
+        if !visited.insert(name.to_string()) {
+            return None;
+        }
+        let ews = group_map.get(name)?;
+
+        let id = nodes.len();
+        nodes.push(TreeNode {
+            id,
+            label: format!("{}: {}", EntityKind::Group, ews.entity.display_name()),
+            depth,
+            entity: Some(ews.clone()),
+            children: Vec::new(),
+            is_category: false,
+        });
+
+        if let Some(kids) = children_of.get(name) {
+            for kid in kids {
+                if let Some(child_id) =
+                    Self::build_group_subtree(nodes, group_map, children_of, kid, depth + 1, visited)
+                {
+                    nodes[id].children.push(child_id);
+                }
+            }
+        }
+
+        Some(id)
+    }
+
     /// Get all visible nodes respecting the current expansion state.
     pub fn visible_nodes(&self, state: &TreeState) -> Vec<&TreeNode> {
         let mut visible = Vec::new();
@@ -409,6 +531,58 @@ impl EntityTree {
         if state.is_expanded(node.id) {
             for &child_id in &node.children {
                 self.collect_visible(&self.nodes[child_id], state, visible);
+            }
+        }
+    }
+
+    /// Get the visible nodes paired with a tree-connector prefix for each row.
+    ///
+    /// The prefix is built from box-drawing characters (`├─`, `└─`, `│`) so the
+    /// hierarchy renders as a proper tree. Order matches [`visible_nodes`], so the
+    /// rows align with selection/scroll indices. Top-level categories get no
+    /// connector; their descendants are connected relative to them.
+    pub fn visible_rows(&self, state: &TreeState) -> Vec<VisibleRow<'_>> {
+        let mut rows = Vec::new();
+        for &root_id in &self.root_children {
+            self.collect_rows(&self.nodes[root_id], state, "", "", &mut rows);
+        }
+        rows
+    }
+
+    fn collect_rows<'a>(
+        &'a self,
+        node: &'a TreeNode,
+        state: &TreeState,
+        ancestor_prefix: &str,
+        connector: &str,
+        rows: &mut Vec<VisibleRow<'a>>,
+    ) {
+        rows.push(VisibleRow {
+            node,
+            prefix: format!("{ancestor_prefix}{connector}"),
+        });
+
+        if state.is_expanded(node.id) {
+            // Extend the ancestor prefix: a vertical bar continues the line for
+            // non-last branches, blank space closes it off for the last one.
+            let child_ancestor = if connector.is_empty() {
+                ancestor_prefix.to_string()
+            } else if connector.starts_with('└') {
+                format!("{ancestor_prefix}   ")
+            } else {
+                format!("{ancestor_prefix}│  ")
+            };
+
+            let last = node.children.len().saturating_sub(1);
+            for (i, &child_id) in node.children.iter().enumerate() {
+                let child_connector = if i == last { "└─ " } else { "├─ " };
+                self.collect_rows(
+                    &self.nodes[child_id],
+                    state,
+                    &child_ancestor,
+                    child_connector,
+                    rows,
+                );
             }
         }
     }
@@ -481,6 +655,38 @@ mod tests {
             source_file: PathBuf::from("/test/catalog-info.yaml"),
             validation_errors: Vec::new(),
         }
+    }
+
+    fn create_test_group(name: &str, parent: Option<&str>) -> EntityWithSource {
+        let mut spec = serde_yaml::Value::Null;
+        if let Some(p) = parent {
+            let mut map = serde_yaml::Mapping::new();
+            map.insert(
+                serde_yaml::Value::String("parent".to_string()),
+                serde_yaml::Value::String(p.to_string()),
+            );
+            spec = serde_yaml::Value::Mapping(map);
+        }
+
+        let mut ews = create_test_entity(EntityKind::Group, name, None, None);
+        ews.entity.spec = spec;
+        ews
+    }
+
+    fn create_test_group_with_children(name: &str, children: &[&str]) -> EntityWithSource {
+        let mut map = serde_yaml::Mapping::new();
+        let seq: Vec<serde_yaml::Value> = children
+            .iter()
+            .map(|c| serde_yaml::Value::String(c.to_string()))
+            .collect();
+        map.insert(
+            serde_yaml::Value::String("children".to_string()),
+            serde_yaml::Value::Sequence(seq),
+        );
+
+        let mut ews = create_test_entity(EntityKind::Group, name, None, None);
+        ews.entity.spec = serde_yaml::Value::Mapping(map);
+        ews
     }
 
     #[test]
@@ -694,20 +900,27 @@ mod tests {
 
         let tree = EntityTree::build(entities);
 
-        // Should have exactly one root category: "Other Entities"
-        assert_eq!(tree.root_children.len(), 1, "Should have 1 root category");
+        // Groups now get their own category, so we expect "Groups" + "Other Entities".
+        let categories: Vec<String> = tree
+            .root_children
+            .iter()
+            .map(|&id| tree.nodes[id].label.clone())
+            .collect();
+        assert!(categories.contains(&"Groups".to_string()));
+        assert!(categories.contains(&"Other Entities".to_string()));
 
-        let other_node = &tree.nodes[tree.root_children[0]];
-        assert_eq!(
-            other_node.label, "Other Entities",
-            "Should be 'Other Entities' category"
-        );
+        let other_node = tree
+            .root_children
+            .iter()
+            .map(|&id| &tree.nodes[id])
+            .find(|n| n.label == "Other Entities")
+            .expect("Other Entities category");
         assert_eq!(other_node.depth, 0);
         assert!(other_node.is_category);
         assert_eq!(
             other_node.children.len(),
-            4,
-            "Should contain all 4 entities"
+            3,
+            "Non-group ungrouped entities (component, user, location)"
         );
 
         // All children should be depth 1
@@ -718,16 +931,117 @@ mod tests {
             assert_eq!(child_node.children.len(), 0, "Should have no children");
         }
 
-        // Verify all entity types are present
-        let labels: Vec<String> = other_node
+        // Non-group entities live under "Other Entities".
+        let other_labels: Vec<String> = other_node
             .children
             .iter()
             .map(|&id| tree.nodes[id].label.clone())
             .collect();
-        assert!(labels.iter().any(|l| l.contains("orphan-component")));
-        assert!(labels.iter().any(|l| l.contains("john-doe")));
-        assert!(labels.iter().any(|l| l.contains("developers")));
-        assert!(labels.iter().any(|l| l.contains("github-org")));
+        assert!(other_labels.iter().any(|l| l.contains("orphan-component")));
+        assert!(other_labels.iter().any(|l| l.contains("john-doe")));
+        assert!(other_labels.iter().any(|l| l.contains("github-org")));
+
+        // The group lives under "Groups".
+        let groups_node = tree
+            .root_children
+            .iter()
+            .map(|&id| &tree.nodes[id])
+            .find(|n| n.label == "Groups")
+            .expect("Groups category");
+        assert_eq!(groups_node.children.len(), 1, "Should contain the group");
+        assert!(tree.nodes[groups_node.children[0]]
+            .label
+            .contains("developers"));
+    }
+
+    #[test]
+    fn test_child_groups_nested() {
+        // parent-team has two child groups via spec.parent.
+        let entities = vec![
+            create_test_group("parent-team", None),
+            create_test_group("team-a", Some("parent-team")),
+            create_test_group("team-b", Some("parent-team")),
+        ];
+
+        let tree = EntityTree::build(entities);
+
+        // Single root category: "Groups"
+        assert_eq!(tree.root_children.len(), 1);
+        let groups_node = &tree.nodes[tree.root_children[0]];
+        assert_eq!(groups_node.label, "Groups");
+        assert_eq!(
+            groups_node.children.len(),
+            1,
+            "Only the root group should sit directly under Groups"
+        );
+
+        // parent-team at depth 1 with the two children nested under it.
+        let parent_node = &tree.nodes[groups_node.children[0]];
+        assert!(parent_node.label.contains("parent-team"));
+        assert_eq!(parent_node.depth, 1);
+        assert_eq!(parent_node.children.len(), 2, "Two child groups");
+
+        let child_labels: Vec<String> = parent_node
+            .children
+            .iter()
+            .map(|&id| {
+                assert_eq!(tree.nodes[id].depth, 2, "Child groups should be depth 2");
+                tree.nodes[id].label.clone()
+            })
+            .collect();
+        assert!(child_labels.iter().any(|l| l.contains("team-a")));
+        assert!(child_labels.iter().any(|l| l.contains("team-b")));
+    }
+
+    #[test]
+    fn test_child_groups_via_spec_children() {
+        // Parent declares children via spec.children instead of child's spec.parent.
+        let entities = vec![
+            create_test_group_with_children("parent-team", &["team-a"]),
+            create_test_group("team-a", None),
+        ];
+
+        let tree = EntityTree::build(entities);
+
+        let groups_node = &tree.nodes[tree.root_children[0]];
+        assert_eq!(groups_node.label, "Groups");
+        assert_eq!(groups_node.children.len(), 1, "Only root group at top level");
+        let parent_node = &tree.nodes[groups_node.children[0]];
+        assert!(parent_node.label.contains("parent-team"));
+        assert_eq!(parent_node.children.len(), 1);
+        assert!(tree.nodes[parent_node.children[0]].label.contains("team-a"));
+    }
+
+    #[test]
+    fn test_visible_rows_have_connectors() {
+        let entities = vec![
+            create_test_group("parent-team", None),
+            create_test_group("team-a", Some("parent-team")),
+            create_test_group("team-b", Some("parent-team")),
+        ];
+
+        let tree = EntityTree::build(entities);
+        let mut state = TreeState::new();
+        state.expand_all(&tree);
+
+        let rows = tree.visible_rows(&state);
+        // Groups (root, no connector), parent-team, team-a, team-b
+        assert_eq!(rows.len(), 4);
+        assert_eq!(rows[0].prefix, "", "Root category has no connector");
+        // team-a / team-b are the children of parent-team; last one uses └─.
+        let team_b = rows
+            .iter()
+            .find(|r| r.node.label.contains("team-b"))
+            .unwrap();
+        assert!(team_b.prefix.contains('└'), "Last child uses └ connector");
+        let team_a = rows
+            .iter()
+            .find(|r| r.node.label.contains("team-a"))
+            .unwrap();
+        assert!(
+            team_a.prefix.contains('├'),
+            "Non-last child uses ├ connector"
+        );
     }
 
     #[test]
