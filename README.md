@@ -3,6 +3,11 @@
 A terminal UI application for exploring and visualizing [Backstage](https://backstage.io/) software catalog entities.
 
 [![CI](https://github.com/grahambrooks/bsv/actions/workflows/ci.yml/badge.svg)](https://github.com/grahambrooks/bsv/actions/workflows/ci.yml)
+[![Release](https://github.com/grahambrooks/bsv/actions/workflows/release.yml/badge.svg)](https://github.com/grahambrooks/bsv/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/grahambrooks/bsv?sort=semver&color=blue)](https://github.com/grahambrooks/bsv/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![MSRV](https://img.shields.io/badge/rustc-1.70%2B-orange.svg)](https://www.rust-lang.org)
+[![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-blue)](https://github.com/grahambrooks/bsv/releases/latest)
 
 
 ![bsv](docs/images/screenshot.png)
