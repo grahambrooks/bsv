@@ -43,6 +43,16 @@ fn help_overlay_renders_when_enabled() {
 }
 
 #[test]
+fn narrow_terminal_stacks_panes_without_panic() {
+    let app = test_app();
+    // Below the narrow-width threshold the panes stack vertically; both should
+    // still render.
+    let text = render(&app, 60, 40);
+    assert!(text.contains("Entities"), "tree pane present when narrow");
+    assert!(text.contains("Details"), "detail pane present when narrow");
+}
+
+#[test]
 fn graph_view_renders() {
     let mut app = test_app();
     app.expand_all();
