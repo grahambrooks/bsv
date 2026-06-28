@@ -151,6 +151,14 @@ fn format_entity_details(
         format_group_details(entity, index, all_entities, &mut lines);
     }
 
+    // Relationships declared in the spec (dependencies, APIs, sub-components).
+    format_relationships(entity, index, &mut lines);
+
+    // Labels
+    if !entity.metadata.labels.is_empty() {
+        format_key_values("Labels:", &entity.metadata.labels, &mut lines);
+    }
+
     // Tags
     if !entity.metadata.tags.is_empty() {
         lines.push(Line::from(""));
@@ -181,6 +189,90 @@ fn format_entity_details(
     }
 
     lines
+}
+
+/// Render the spec relationship fields (dependsOn, providesApis, consumesApis,
+/// subcomponentOf) shared by Components/APIs/Resources, with the same
+/// validation colouring used elsewhere. Nothing is emitted when none are set.
+fn format_relationships(
+    entity: &crate::entity::Entity,
+    index: &EntityIndex,
+    lines: &mut Vec<Line<'static>>,
+) {
+    // (spec key, default kind, heading)
+    const FIELDS: &[(&str, &str, &str)] = &[
+        ("dependsOn", "component", "Depends on"),
+        ("providesApis", "api", "Provides APIs"),
+        ("consumesApis", "api", "Consumes APIs"),
+    ];
+
+    let mut emitted_header = false;
+    let mut ensure_header = |lines: &mut Vec<Line<'static>>| {
+        if !emitted_header {
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                "─── Relationships ───",
+                Style::default().fg(Color::Magenta),
+            )));
+            emitted_header = true;
+        }
+    };
+
+    // subcomponentOf is a single reference.
+    if let Some(parent) = entity.get_spec_string("subcomponentOf") {
+        ensure_header(lines);
+        let ref_line = format_entity_ref(&parent, "component", index);
+        lines.push(Line::from(
+            std::iter::once(Span::styled("Subcomponent of: ", label_style()))
+                .chain(ref_line)
+                .collect::<Vec<_>>(),
+        ));
+    }
+
+    for (key, default_kind, heading) in FIELDS {
+        let Some(seq) = entity.spec.get(key).and_then(|v| v.as_sequence()) else {
+            continue;
+        };
+        let refs: Vec<&str> = seq.iter().filter_map(|v| v.as_str()).collect();
+        if refs.is_empty() {
+            continue;
+        }
+
+        ensure_header(lines);
+        lines.push(Line::from(Span::styled(
+            format!("{heading} ({}):", refs.len()),
+            label_style(),
+        )));
+        let last = refs.len() - 1;
+        for (i, r) in refs.iter().enumerate() {
+            let connector = if i == last { "└─ " } else { "├─ " };
+            let ref_line = format_entity_ref(r, default_kind, index);
+            lines.push(Line::from(
+                std::iter::once(Span::styled(connector.to_string(), dimmed_style()))
+                    .chain(ref_line)
+                    .collect::<Vec<_>>(),
+            ));
+        }
+    }
+}
+
+/// Render a sorted key/value map (e.g. labels) under a heading.
+fn format_key_values(
+    heading: &str,
+    map: &std::collections::HashMap<String, String>,
+    lines: &mut Vec<Line<'static>>,
+) {
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(heading.to_string(), label_style())));
+
+    let mut sorted: Vec<_> = map.iter().collect();
+    sorted.sort_by_key(|(k, _)| *k);
+    for (key, value) in sorted {
+        lines.push(Line::from(vec![
+            Span::styled(format!("  {key}: "), dimmed_style()),
+            Span::raw(value.clone()),
+        ]));
+    }
 }
 
 /// Render the entity as its raw YAML definition, re-serialized from the parsed
@@ -521,4 +613,77 @@ fn format_entity_ref(
     }
 
     spans
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::entity::Entity;
+
+    fn line_text(lines: &[Line<'static>]) -> Vec<String> {
+        lines
+            .iter()
+            .map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect())
+            .collect()
+    }
+
+    fn component_with_spec(spec: &str) -> Entity {
+        let spec = serde_yaml::from_str(spec).unwrap();
+        Entity {
+            api_version: "backstage.io/v1alpha1".to_string(),
+            kind: EntityKind::Component,
+            metadata: crate::entity::Metadata {
+                name: "svc".to_string(),
+                title: None,
+                namespace: Some("default".to_string()),
+                description: None,
+                labels: std::collections::HashMap::new(),
+                annotations: std::collections::HashMap::new(),
+                tags: Vec::new(),
+                links: Vec::new(),
+            },
+            spec,
+        }
+    }
+
+    #[test]
+    fn relationships_render_with_headings() {
+        let entity = component_with_spec(
+            "dependsOn: [resource:default/db, other-svc]\nprovidesApis: [my-api]\nsubcomponentOf: parent-svc",
+        );
+        let index = EntityIndex::build(&[]);
+        let mut lines = Vec::new();
+        format_relationships(&entity, &index, &mut lines);
+
+        let text = line_text(&lines).join("\n");
+        assert!(text.contains("Relationships"), "section header present");
+        assert!(text.contains("Subcomponent of:"));
+        assert!(text.contains("Depends on (2):"));
+        assert!(text.contains("Provides APIs (1):"));
+        // Last item in a list uses the └─ connector, earlier ones ├─.
+        assert!(text.contains("├─ "));
+        assert!(text.contains("└─ "));
+    }
+
+    #[test]
+    fn no_relationships_emits_nothing() {
+        let entity = component_with_spec("type: service");
+        let index = EntityIndex::build(&[]);
+        let mut lines = Vec::new();
+        format_relationships(&entity, &index, &mut lines);
+        assert!(lines.is_empty(), "no relationship fields -> no output");
+    }
+
+    #[test]
+    fn labels_render_sorted() {
+        let mut map = std::collections::HashMap::new();
+        map.insert("tier".to_string(), "1".to_string());
+        map.insert("app".to_string(), "web".to_string());
+        let mut lines = Vec::new();
+        format_key_values("Labels:", &map, &mut lines);
+        let text = line_text(&lines);
+        let app_idx = text.iter().position(|l| l.contains("app:")).unwrap();
+        let tier_idx = text.iter().position(|l| l.contains("tier:")).unwrap();
+        assert!(app_idx < tier_idx, "keys are sorted alphabetically");
+    }
 }
