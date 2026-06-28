@@ -156,6 +156,9 @@ pub struct App {
     pub focus: Focus,
     /// Vertical scroll offset (in rows) for the right-hand detail/graph panel.
     pub detail_scroll: u16,
+    /// Index of the highlighted related entity in the graph view (into the list
+    /// of navigable, existing related entities).
+    pub graph_selection: usize,
     /// Non-fatal messages from the last load (unparsable docs, reload failures).
     pub load_warnings: Vec<String>,
     /// Whether the keyboard-shortcut help overlay is showing.
@@ -196,6 +199,7 @@ impl App {
             show_raw: false,
             focus: Focus::Tree,
             detail_scroll: 0,
+            graph_selection: 0,
             load_warnings,
             show_help: false,
             docs_browser: None,
@@ -252,6 +256,7 @@ impl App {
                 self.tree_state = state;
 
                 self.detail_scroll = 0;
+                self.graph_selection = 0;
                 self.load_warnings = warnings;
                 self.relationship_cache = RefCell::new(None);
             }
@@ -270,6 +275,7 @@ impl App {
     pub fn toggle_graph(&mut self) {
         self.show_graph = !self.show_graph;
         self.detail_scroll = 0;
+        self.graph_selection = 0;
     }
 
     /// Toggle the details panel between formatted details and the raw YAML
@@ -277,6 +283,7 @@ impl App {
     pub fn toggle_raw(&mut self) {
         self.show_raw = !self.show_raw;
         self.detail_scroll = 0;
+        self.graph_selection = 0;
     }
 
     /// Move keyboard focus between the tree and the detail/graph panel.
@@ -317,6 +324,7 @@ impl App {
     /// Jump the detail panel to the top.
     pub fn scroll_detail_home(&mut self) {
         self.detail_scroll = 0;
+        self.graph_selection = 0;
     }
 
     /// Jump the detail panel to the bottom (`max` = content length minus height).
@@ -377,6 +385,73 @@ impl App {
         self.relationship_graph().map(|g| (*g).clone())
     }
 
+    /// Canonical refs of the related entities that can be jumped to (those that
+    /// exist in the catalog), in the same order the graph view renders them.
+    pub fn navigable_targets(&self) -> Vec<String> {
+        self.relationship_graph()
+            .map(|g| {
+                g.ordered_related()
+                    .into_iter()
+                    .filter(|e| e.node.exists)
+                    .map(|e| e.node.ref_key)
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// Move the graph's related-entity highlight down/up, clamped.
+    pub fn graph_select_next(&mut self) {
+        let count = self.navigable_targets().len();
+        if count > 0 && self.graph_selection + 1 < count {
+            self.graph_selection += 1;
+        }
+    }
+
+    pub fn graph_select_prev(&mut self) {
+        self.graph_selection = self.graph_selection.saturating_sub(1);
+    }
+
+    /// Jump to the related entity currently highlighted in the graph view.
+    /// Returns true if a target was selected.
+    pub fn jump_to_related(&mut self) -> bool {
+        let targets = self.navigable_targets();
+        match targets.get(self.graph_selection).cloned() {
+            Some(ref_key) => self.select_entity_by_ref(&ref_key),
+            None => false,
+        }
+    }
+
+    /// Select the entity with the given canonical ref, expanding its ancestors
+    /// so it becomes visible. Returns false if no such entity exists.
+    pub fn select_entity_by_ref(&mut self, ref_key: &str) -> bool {
+        let target = self
+            .tree
+            .nodes
+            .iter()
+            .find(|n| {
+                n.entity
+                    .as_ref()
+                    .is_some_and(|ews| ews.entity.ref_key() == ref_key)
+            })
+            .map(|n| n.id);
+
+        let Some(id) = target else {
+            return false;
+        };
+
+        // Expand every ancestor so the node is visible.
+        let mut current = id;
+        while let Some(parent) = self.tree.parent_of(current) {
+            self.tree_state.expanded.insert(parent);
+            current = parent;
+        }
+
+        self.tree_state.selected = id;
+        self.detail_scroll = 0;
+        self.graph_selection = 0;
+        true
+    }
+
     /// Get visible nodes filtered by search query if active.
     pub fn visible_nodes(&self) -> Vec<&TreeNode> {
         let nodes = self.tree.visible_nodes(&self.tree_state);
@@ -401,6 +476,7 @@ impl App {
         if current_idx > 0 {
             self.tree_state.selected = visible[current_idx - 1].id;
             self.detail_scroll = 0;
+            self.graph_selection = 0;
         }
     }
 
@@ -418,6 +494,7 @@ impl App {
         if current_idx < visible.len() - 1 {
             self.tree_state.selected = visible[current_idx + 1].id;
             self.detail_scroll = 0;
+            self.graph_selection = 0;
         }
     }
 
@@ -436,6 +513,7 @@ impl App {
         let new_idx = current_idx.saturating_sub(page.max(1));
         self.tree_state.selected = visible[new_idx].id;
         self.detail_scroll = 0;
+        self.graph_selection = 0;
     }
 
     /// Select the first visible node.
@@ -443,6 +521,7 @@ impl App {
         if let Some(first) = self.visible_nodes().first() {
             self.tree_state.selected = first.id;
             self.detail_scroll = 0;
+            self.graph_selection = 0;
         }
     }
 
@@ -451,6 +530,7 @@ impl App {
         if let Some(last) = self.visible_nodes().last() {
             self.tree_state.selected = last.id;
             self.detail_scroll = 0;
+            self.graph_selection = 0;
         }
     }
 
@@ -469,6 +549,7 @@ impl App {
         let new_idx = (current_idx + page.max(1)).min(visible.len() - 1);
         self.tree_state.selected = visible[new_idx].id;
         self.detail_scroll = 0;
+        self.graph_selection = 0;
     }
 
     /// Index of the currently selected node within the visible list, if any.
@@ -502,6 +583,7 @@ impl App {
         } else if let Some(parent) = self.tree.parent_of(selected) {
             self.tree_state.selected = parent;
             self.detail_scroll = 0;
+            self.graph_selection = 0;
         }
     }
 
@@ -517,6 +599,7 @@ impl App {
             self.tree_state.selected = first;
         }
         self.detail_scroll = 0;
+        self.graph_selection = 0;
     }
 
     pub fn selected_entity(&self) -> Option<&EntityWithSource> {
@@ -745,6 +828,69 @@ mod tests {
 
         app.collapse();
         assert_eq!(Some(app.tree_state.selected), parent, "moved to parent");
+    }
+
+    #[test]
+    fn select_entity_by_ref_reveals_a_collapsed_node() {
+        let mut app = test_app();
+        app.expand_all();
+        // Capture a deep entity's ref, then collapse everything.
+        app.move_end();
+        let target = app
+            .selected_entity()
+            .expect("an entity at the bottom")
+            .entity
+            .ref_key();
+        app.collapse_all();
+        assert!(
+            !app.visible_nodes().iter().any(|n| {
+                n.entity
+                    .as_ref()
+                    .is_some_and(|e| e.entity.ref_key() == target)
+            }),
+            "target hidden after collapse_all"
+        );
+
+        assert!(app.select_entity_by_ref(&target));
+        assert!(
+            app.visible_nodes().iter().any(|n| {
+                n.entity
+                    .as_ref()
+                    .is_some_and(|e| e.entity.ref_key() == target)
+            }),
+            "ancestors expanded so target is visible"
+        );
+        assert_eq!(
+            app.selected_entity().unwrap().entity.ref_key(),
+            target,
+            "target is selected"
+        );
+    }
+
+    #[test]
+    fn jump_to_related_navigates_to_a_related_entity() {
+        let mut app = test_app();
+        app.expand_all();
+
+        // Find an entity that has at least one existing related entity.
+        let mut found = false;
+        for _ in 0..app.visible_nodes().len() {
+            if app.selected_entity().is_some() && !app.navigable_targets().is_empty() {
+                found = true;
+                break;
+            }
+            app.move_down();
+        }
+        assert!(found, "found an entity with related entities");
+
+        let target = app.navigable_targets()[0].clone();
+        app.graph_selection = 0;
+        assert!(app.jump_to_related());
+        assert_eq!(
+            app.selected_entity().unwrap().entity.ref_key(),
+            target,
+            "selection jumped to the related entity"
+        );
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::graph::{RelationType, RelationshipGraph};
+use crate::graph::RelationshipGraph;
 use crate::ui::theme::*;
 use ratatui::{
     layout::Rect,
@@ -12,7 +12,8 @@ use ratatui::{
 /// Build the relationship lines for the selected entity, or `None` when nothing
 /// is selected. Used for rendering and to measure content height for scrolling.
 pub fn graph_lines(app: &App) -> Option<Vec<Line<'static>>> {
-    app.relationship_graph().map(|graph| format_graph(&graph))
+    app.relationship_graph()
+        .map(|graph| format_graph(&graph, app.graph_selection))
 }
 
 pub fn draw_graph(frame: &mut Frame, app: &App, area: Rect) {
@@ -40,7 +41,9 @@ pub fn draw_graph(frame: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn format_graph(graph: &RelationshipGraph) -> Vec<Line<'static>> {
+/// Render the graph. `selected` is the index into the navigable (existing)
+/// related entities, which is highlighted so it can be jumped to.
+fn format_graph(graph: &RelationshipGraph, selected: usize) -> Vec<Line<'static>> {
     let mut lines = Vec::new();
 
     // Center entity
@@ -54,17 +57,38 @@ fn format_graph(graph: &RelationshipGraph) -> Vec<Line<'static>> {
                 .add_modifier(Modifier::BOLD),
         ),
     ]));
-
     lines.push(Line::from(""));
 
-    // Outgoing relationships
-    if !graph.outgoing.is_empty() {
-        format_outgoing_relationships(&graph.outgoing, &mut lines);
-    }
+    let entries = graph.ordered_related();
+    let mut emitted_outgoing = false;
+    let mut emitted_incoming = false;
+    let mut nav_index = 0usize;
 
-    // Incoming relationships
-    if !graph.incoming.is_empty() {
-        format_incoming_relationships(&graph.incoming, &mut lines);
+    for entry in &entries {
+        if entry.outgoing && !emitted_outgoing {
+            lines.push(section_header(
+                "─── Outgoing ───────────────────",
+                Color::Green,
+            ));
+            emitted_outgoing = true;
+        }
+        if !entry.outgoing && !emitted_incoming {
+            if emitted_outgoing {
+                lines.push(Line::from(""));
+            }
+            lines.push(section_header(
+                "─── Incoming ───────────────────",
+                Color::Blue,
+            ));
+            emitted_incoming = true;
+        }
+
+        let navigable = entry.node.exists;
+        let highlighted = navigable && nav_index == selected;
+        lines.push(relationship_line(entry, highlighted));
+        if navigable {
+            nav_index += 1;
+        }
     }
 
     // Summary
@@ -77,91 +101,47 @@ fn format_graph(graph: &RelationshipGraph) -> Vec<Line<'static>> {
         ),
         dimmed_style(),
     )]));
+    if nav_index > 0 {
+        lines.push(Line::from(Span::styled(
+            "↑↓ select related · Enter to jump",
+            dimmed_style(),
+        )));
+    }
 
     lines
 }
 
-fn format_outgoing_relationships(
-    outgoing: &[(RelationType, crate::graph::EntityNode)],
-    lines: &mut Vec<Line<'static>>,
-) {
-    lines.push(Line::from(Span::styled(
-        "─── Outgoing ───────────────────",
-        Style::default().fg(Color::Green),
-    )));
-
-    // Group by relationship type
-    let mut by_type: std::collections::BTreeMap<&str, Vec<_>> = std::collections::BTreeMap::new();
-    for (rel_type, node) in outgoing {
-        by_type.entry(rel_type.label()).or_default().push(node);
-    }
-
-    for (label, mut nodes) in by_type {
-        nodes.sort_by(|a, b| a.display_name.cmp(&b.display_name));
-        for node in nodes {
-            let (icon, color) = if node.exists {
-                ("→", Color::Green)
-            } else {
-                ("⚠", Color::Yellow)
-            };
-
-            lines.push(Line::from(vec![
-                Span::styled(format!("  {icon} "), Style::default().fg(color)),
-                Span::styled(format!("{label}: "), dimmed_style()),
-                Span::styled(format!("[{}] ", node.kind), dimmed_style()),
-                Span::styled(node.display_name.clone(), Style::default().fg(color)),
-                if node.exists {
-                    Span::raw("")
-                } else {
-                    Span::styled(" (not found)", Style::default().fg(Color::Red))
-                },
-            ]));
-        }
-    }
+fn section_header(text: &'static str, color: Color) -> Line<'static> {
+    Line::from(Span::styled(text, Style::default().fg(color)))
 }
 
-fn format_incoming_relationships(
-    incoming: &[(RelationType, crate::graph::EntityNode)],
-    lines: &mut Vec<Line<'static>>,
-) {
-    lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled(
-        "─── Incoming ───────────────────",
-        Style::default().fg(Color::Blue),
-    )));
+fn relationship_line(entry: &crate::graph::RelatedEntry, highlighted: bool) -> Line<'static> {
+    let node = &entry.node;
+    let (arrow, color) = if !entry.outgoing {
+        ("←", Color::Blue)
+    } else if node.exists {
+        ("→", Color::Green)
+    } else {
+        ("⚠", Color::Yellow)
+    };
 
-    // Group by relationship type
-    let mut by_type: std::collections::BTreeMap<&str, Vec<_>> = std::collections::BTreeMap::new();
-    for (rel_type, node) in incoming {
-        by_type
-            .entry(inverse_label(rel_type))
-            .or_default()
-            .push(node);
+    let mut spans = vec![
+        Span::styled(format!("  {arrow} "), Style::default().fg(color)),
+        Span::styled(format!("{}: ", entry.label), dimmed_style()),
+        Span::styled(format!("[{}] ", node.kind), dimmed_style()),
+        Span::styled(node.display_name.clone(), Style::default().fg(color)),
+    ];
+    if !node.exists {
+        spans.push(Span::styled(
+            " (not found)",
+            Style::default().fg(Color::Red),
+        ));
     }
 
-    for (label, mut nodes) in by_type {
-        nodes.sort_by(|a, b| a.display_name.cmp(&b.display_name));
-        for node in nodes {
-            lines.push(Line::from(vec![
-                Span::styled("  ← ", Style::default().fg(Color::Blue)),
-                Span::styled(format!("{label}: "), dimmed_style()),
-                Span::styled(format!("[{}] ", node.kind), dimmed_style()),
-                Span::styled(node.display_name.clone(), Style::default().fg(Color::Blue)),
-            ]));
-        }
-    }
-}
-
-fn inverse_label(rel_type: &RelationType) -> &'static str {
-    match rel_type {
-        RelationType::Owner => "owns",
-        RelationType::System => "contains",
-        RelationType::Domain => "contains",
-        RelationType::Child => "child of",
-        RelationType::DependencyOf => "depended on by",
-        RelationType::ConsumedBy => "consumed by",
-        RelationType::ProvidedBy => "provides",
-        RelationType::HasMember => "member",
-        _ => rel_type.label(),
+    let line = Line::from(spans);
+    if highlighted {
+        line.style(selected_style())
+    } else {
+        line
     }
 }

@@ -277,9 +277,15 @@ fn handle_normal_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {
     }
 
     if app.is_detail_focused() {
-        // Navigation keys scroll the right-hand panel.
         let max = right_panel_max_scroll(app, visible_height);
         match key_code {
+            // In the graph view, up/down pick a related entity and Enter jumps
+            // to it; PageUp/PageDown still scroll. Elsewhere up/down scroll.
+            KeyCode::Up | KeyCode::Char('k') if app.show_graph => app.graph_select_prev(),
+            KeyCode::Down | KeyCode::Char('j') if app.show_graph => app.graph_select_next(),
+            KeyCode::Enter if app.show_graph => {
+                app.jump_to_related();
+            }
             KeyCode::Up | KeyCode::Char('k') => app.scroll_detail_up(1),
             KeyCode::Down | KeyCode::Char('j') => app.scroll_detail_down(1, max),
             KeyCode::PageUp => app.scroll_detail_up(visible_height as u16),

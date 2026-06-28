@@ -144,10 +144,26 @@ impl RelationType {
             RelationType::HasMember => "has member",
         }
     }
+
+    /// Label used when this relationship is viewed from the target's side.
+    pub fn incoming_label(&self) -> &'static str {
+        match self {
+            RelationType::Owner => "owns",
+            RelationType::System => "contains",
+            RelationType::Domain => "contains",
+            RelationType::Child => "child of",
+            RelationType::DependencyOf => "depended on by",
+            RelationType::ConsumedBy => "consumed by",
+            RelationType::ProvidedBy => "provides",
+            RelationType::HasMember => "member",
+            _ => self.label(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct EntityNode {
+    pub ref_key: String,
     pub display_name: String,
     pub kind: String,
     pub exists: bool,
@@ -158,6 +174,15 @@ pub struct RelationshipGraph {
     pub center: EntityNode,
     pub outgoing: Vec<(RelationType, EntityNode)>,
     pub incoming: Vec<(RelationType, EntityNode)>,
+}
+
+/// One related entity in render order, with the label shown to the user.
+#[derive(Debug, Clone)]
+pub struct RelatedEntry {
+    /// True for relationships this entity declares, false for ones pointing at it.
+    pub outgoing: bool,
+    pub label: String,
+    pub node: EntityNode,
 }
 
 impl RelationshipGraph {
@@ -173,6 +198,7 @@ impl RelationshipGraph {
             .collect();
 
         let center = EntityNode {
+            ref_key: center_ref.clone(),
             display_name: entity.entity.display_name(),
             kind: entity.entity.kind.to_string(),
             exists: true,
@@ -205,8 +231,10 @@ impl RelationshipGraph {
         entity_map: &HashMap<String, &EntityWithSource>,
     ) -> EntityNode {
         let parsed = EntityRef::parse(ref_str, default_kind);
-        if entity_map.contains_key(&parsed.canonical()) {
+        let canonical = parsed.canonical();
+        if entity_map.contains_key(&canonical) {
             return EntityNode {
+                ref_key: canonical,
                 display_name: parsed.name,
                 kind: parsed.kind,
                 exists: true,
@@ -215,8 +243,10 @@ impl RelationshipGraph {
         if parsed.kind_inferred {
             for fallback in fallbacks {
                 let alt = EntityRef::parse(ref_str, fallback);
-                if entity_map.contains_key(&alt.canonical()) {
+                let alt_canonical = alt.canonical();
+                if entity_map.contains_key(&alt_canonical) {
                     return EntityNode {
+                        ref_key: alt_canonical,
                         display_name: alt.name,
                         kind: alt.kind,
                         exists: true,
@@ -225,6 +255,7 @@ impl RelationshipGraph {
             }
         }
         EntityNode {
+            ref_key: canonical,
             display_name: parsed.name,
             kind: parsed.kind,
             exists: false,
@@ -418,11 +449,50 @@ impl RelationshipGraph {
         _entity_map: &HashMap<String, &EntityWithSource>,
     ) -> EntityNode {
         EntityNode {
+            ref_key: entity.entity.ref_key(),
             display_name: entity.entity.display_name(),
             kind: entity.entity.kind.to_string(),
             exists: true,
         }
     }
+
+    /// Related entities in a stable render order: outgoing first (sorted by
+    /// relationship label then name), then incoming. Used by the UI to render
+    /// and by navigation to jump to a related entity.
+    pub fn ordered_related(&self) -> Vec<RelatedEntry> {
+        let mut entries: Vec<RelatedEntry> = self
+            .outgoing
+            .iter()
+            .map(|(rt, node)| RelatedEntry {
+                outgoing: true,
+                label: rt.label().to_string(),
+                node: node.clone(),
+            })
+            .collect();
+        sort_entries(&mut entries);
+
+        let mut incoming: Vec<RelatedEntry> = self
+            .incoming
+            .iter()
+            .map(|(rt, node)| RelatedEntry {
+                outgoing: false,
+                label: rt.incoming_label().to_string(),
+                node: node.clone(),
+            })
+            .collect();
+        sort_entries(&mut incoming);
+
+        entries.extend(incoming);
+        entries
+    }
+}
+
+fn sort_entries(entries: &mut [RelatedEntry]) {
+    entries.sort_by(|a, b| {
+        a.label
+            .cmp(&b.label)
+            .then_with(|| a.node.display_name.cmp(&b.node.display_name))
+    });
 }
 
 #[cfg(test)]

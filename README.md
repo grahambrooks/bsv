@@ -13,7 +13,7 @@ A terminal UI application for exploring and visualizing [Backstage](https://back
 - **Entity Details**: View metadata, ownership, lifecycle, tags, links, annotations, and source file information
 - **Group Hierarchy**: Display group parent/child relationships and member lists for organizational structure
 - **Schema Validation**: Automatically validates entities against the official Backstage JSON Schema
-- **Relationship Graph**: Visualize how entities relate to each other (dependencies, APIs, ownership)
+- **Relationship Graph**: Visualize how entities relate to each other (dependencies, APIs, ownership), and jump straight to a related entity
 - **Documentation Browser**: View TechDocs and ADR markdown files directly in the terminal
 - **Reference Validation**: Highlights missing or invalid entity references
 - **Search**: Incremental `/` search across name, title, description, kind, owner, and tags, with field-scoped queries (`owner:team-a`, `tag:backend`, `kind:component`, `system:…`, `domain:…`)
@@ -124,6 +124,10 @@ The `Tab` key moves focus between the entity tree (left) and the detail/graph
 panel (right). When the panel is focused, the navigation keys scroll its
 contents instead of moving the tree selection — useful for long entities or the
 raw YAML view. The mouse scroll wheel scrolls whichever pane the cursor is over.
+
+In the relationship graph (`g`), focus the panel with `Tab`, use `↑`/`↓` to
+highlight a related entity, and press `Enter` to jump to it in the tree — letting
+you walk the dependency graph hop by hop.
 
 | Key | Action |
 |-----|--------|

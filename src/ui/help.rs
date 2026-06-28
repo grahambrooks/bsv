@@ -18,6 +18,10 @@ const HELP_ROWS: &[(&str, &str)] = &[
     ("c", "Collapse all nodes"),
     ("/", "Search (incremental, case-insensitive)"),
     ("g", "Toggle relationship graph"),
+    (
+        "Enter (graph)",
+        "Jump to the highlighted related entity (Tab to focus graph)",
+    ),
     ("y", "Toggle raw YAML view"),
     ("d", "Open documentation browser (when available)"),
     ("r", "Reload catalog from disk"),
@@ -95,8 +99,13 @@ pub fn draw_help_footer(frame: &mut Frame, app: &App, area: Rect) {
     };
     let help_text = if app.search_active {
         " Enter: Confirm | Esc: Cancel | Type to search... ".to_string()
+    } else if app.is_detail_focused() && app.show_graph {
+        // Graph pane focused: up/down pick a related entity, Enter jumps.
+        format!(
+            " q: Quit | ?: Help | Tab: Focus tree | ↑↓: Select related | Enter: Jump | PgUp/PgDn: Scroll | g: Details{warn_hint} "
+        )
     } else if app.is_detail_focused() {
-        // Right panel has focus: navigation keys scroll it.
+        // Detail pane focused: navigation keys scroll it.
         format!(
             " q: Quit | ?: Help | Tab: Focus tree | ↑↓/PgUp/PgDn: Scroll | Home/End: Top/Bottom | g: {panel_name}{warn_hint} "
         )
