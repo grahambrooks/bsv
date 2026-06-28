@@ -1,0 +1,44 @@
+RELEASING.md
+  s_ff8d6f861ed694::t_3795e7120e7d16 1-44
+install.sh
+  s_ff8d6f861ed694::t_3a7aaee0acc094 1-109
+.github/workflows/ci.yml
+  s_ff8d6f861ed694::t_d576c793b686b5 50-53,57-58,60,62-73
+.github/workflows/release.yml
+  s_ff8d6f861ed694::t_41a9aded1ccf36 1-118
+Formula/bsv.rb
+  s_ff8d6f861ed694::t_ea30fc55d2de17 13-14,18,24,28,35
+  s_ff8d6f861ed694::t_8d997a635af659 1-12,15-17,19-23,25-27,29-34,36-46
+bucket/bsv.json
+  s_ff8d6f861ed694::t_ea30fc55d2de17 2,8-9
+  s_ff8d6f861ed694::t_48cf3c6560a663 1,3-7,10-23
+src/tree.rs
+  s_ff8d6f861ed694::t_12c783e9fb5def 504-511,1013-1017
+src/ui/details.rs
+  s_ff8d6f861ed694::t_12c783e9fb5def 227-229,241
+src/main.rs
+  s_ff8d6f861ed694::t_27332e0a8abf3b 25-38,40-52
+install.ps1
+  s_ff8d6f861ed694::t_91995cb345f399 1-87
+scripts/update-packaging.sh
+  s_ff8d6f861ed694::t_636721a952c522 1-114
+README.md
+  s_ff8d6f861ed694::t_a5a4aaf2cfaa73 109
+  s_ff8d6f861ed694::t_6f87a808144b76 24-30,33-34,36-40,43-84,86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "6ba66f55f7204918adc44c799768cf6f773886a9",
+  "prompts": {},
+  "sessions": {
+    "s_ff8d6f861ed694": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f8c3964d-263e-4fab-8692-418b7637f3f5",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Graham Brooks <graham@grahambrooks.com>"
+    }
+  }
+}
