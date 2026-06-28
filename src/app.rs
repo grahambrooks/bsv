@@ -112,8 +112,19 @@ use crate::parser::load_catalog;
 use crate::tree::{EntityTree, TreeNode, TreeState};
 use anyhow::Result;
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+
+/// A stable identity for a tree node that survives a rebuild (node ids are
+/// reassigned when the catalog changes). Entities use their canonical ref;
+/// categories use their label.
+fn node_identity(node: &TreeNode) -> String {
+    match &node.entity {
+        Some(ews) => ews.entity.ref_key(),
+        None => format!("cat:{}", node.label),
+    }
+}
 
 pub enum InputMode {
     Normal,
@@ -193,29 +204,55 @@ impl App {
         })
     }
 
-    /// Reload all entities from disk and reset state.
+    /// Reload all entities from disk, preserving the user's view as much as
+    /// possible.
     ///
-    /// Useful when catalog files have changed and need to be re-parsed.
+    /// Expansion state and the current selection are restored by stable identity
+    /// (so they survive id reassignment), and search/view toggles are kept — this
+    /// keeps both manual reload (`r`) and automatic file-watch reloads from being
+    /// disruptive.
     pub fn reload(&mut self) {
         match load_catalog(&self.root_path) {
             Ok((entities, warnings)) => {
+                // Snapshot expansion + selection by identity before ids change.
+                let expanded: HashSet<String> = self
+                    .tree
+                    .nodes
+                    .iter()
+                    .filter(|n| self.tree_state.is_expanded(n.id))
+                    .map(node_identity)
+                    .collect();
+                let selected = self
+                    .tree
+                    .get_node(self.tree_state.selected)
+                    .map(node_identity);
+
                 self.entity_count = entities.len();
                 self.entity_index = EntityIndex::build(&entities);
                 self.tree = EntityTree::build(entities.clone());
                 self.entities = entities;
-                self.tree_state = TreeState::new();
-                // Expand root categories by default
-                for &root_id in &self.tree.root_children {
-                    self.tree_state.expanded.insert(root_id);
+
+                // Restore expansion + selection against the rebuilt tree.
+                let mut state = TreeState::new();
+                for node in &self.tree.nodes {
+                    if expanded.contains(&node_identity(node)) {
+                        state.expanded.insert(node.id);
+                    }
                 }
-                self.search_query.clear();
-                self.search_active = false;
-                self.show_graph = false;
-                self.show_raw = false;
-                self.focus = Focus::Tree;
+                if state.expanded.is_empty() {
+                    for &root_id in &self.tree.root_children {
+                        state.expanded.insert(root_id);
+                    }
+                }
+                if let Some(sel) = selected {
+                    if let Some(node) = self.tree.nodes.iter().find(|n| node_identity(n) == sel) {
+                        state.selected = node.id;
+                    }
+                }
+                self.tree_state = state;
+
                 self.detail_scroll = 0;
                 self.load_warnings = warnings;
-                self.docs_browser = None;
                 self.relationship_cache = RefCell::new(None);
             }
             Err(e) => {
@@ -625,6 +662,38 @@ mod tests {
             first_center, g3.center.display_name,
             "graph centre tracks the selection"
         );
+    }
+
+    #[test]
+    fn reload_preserves_expansion_and_selection() {
+        let mut app = test_app();
+        app.expand_all();
+        assert!(select_next_entity(&mut app), "select an entity");
+        let selected_ident = node_identity(app.tree.get_node(app.tree_state.selected).unwrap());
+        let expanded_before: std::collections::HashSet<String> = app
+            .tree
+            .nodes
+            .iter()
+            .filter(|n| app.tree_state.is_expanded(n.id))
+            .map(node_identity)
+            .collect();
+        assert!(expanded_before.len() > 1, "several nodes expanded");
+
+        app.reload();
+
+        // Same selection identity is restored.
+        let selected_after = node_identity(app.tree.get_node(app.tree_state.selected).unwrap());
+        assert_eq!(selected_after, selected_ident, "selection preserved");
+
+        // The previously expanded nodes are still expanded.
+        let expanded_after: std::collections::HashSet<String> = app
+            .tree
+            .nodes
+            .iter()
+            .filter(|n| app.tree_state.is_expanded(n.id))
+            .map(node_identity)
+            .collect();
+        assert_eq!(expanded_after, expanded_before, "expansion preserved");
     }
 
     #[test]
