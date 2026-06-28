@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["backstage", "tui", "catalog", "devops", "terminal"]
 categories = ["command-line-utilities", "development-tools"]
 authors = ["Graham Brooks <graham@grahambrooks.com>"]
-rust-version = "1.70"
+rust-version = "1.96"
 
 [dependencies]
 ratatui = "0.30"
