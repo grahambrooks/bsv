@@ -194,6 +194,43 @@ impl RelationshipGraph {
         }
     }
 
+    /// Build an [`EntityNode`] for a reference, trying `default_kind` first and
+    /// then each of `fallbacks` when the kind was inferred. Lets an unqualified
+    /// reference resolve against more than one kind (e.g. `dependsOn` targeting
+    /// either a Component or a Resource).
+    fn resolve_node(
+        ref_str: &str,
+        default_kind: &str,
+        fallbacks: &[&str],
+        entity_map: &HashMap<String, &EntityWithSource>,
+    ) -> EntityNode {
+        let parsed = EntityRef::parse(ref_str, default_kind);
+        if entity_map.contains_key(&parsed.canonical()) {
+            return EntityNode {
+                display_name: parsed.name,
+                kind: parsed.kind,
+                exists: true,
+            };
+        }
+        if parsed.kind_inferred {
+            for fallback in fallbacks {
+                let alt = EntityRef::parse(ref_str, fallback);
+                if entity_map.contains_key(&alt.canonical()) {
+                    return EntityNode {
+                        display_name: alt.name,
+                        kind: alt.kind,
+                        exists: true,
+                    };
+                }
+            }
+        }
+        EntityNode {
+            display_name: parsed.name,
+            kind: parsed.kind,
+            exists: false,
+        }
+    }
+
     fn add_single_ref_relationship(
         ref_str: &str,
         default_kind: &str,
@@ -291,13 +328,18 @@ impl RelationshipGraph {
         }
 
         if let Some(deps) = entity.entity.spec.get("dependsOn") {
-            Self::add_array_ref_relationships(
-                deps,
-                "component",
-                RelationType::DependsOn,
-                entity_map,
-                outgoing,
-            );
+            // `dependsOn` may target Components or Resources; an unqualified ref
+            // should resolve to either, not just Component.
+            if let Some(arr) = deps.as_sequence() {
+                for item in arr {
+                    if let Some(item_str) = item.as_str() {
+                        outgoing.push((
+                            RelationType::DependsOn,
+                            Self::resolve_node(item_str, "component", &["resource"], entity_map),
+                        ));
+                    }
+                }
+            }
         }
 
         if let Some(apis) = entity.entity.spec.get("providesApis") {
@@ -430,9 +472,12 @@ impl RelationshipGraph {
             }
 
             if let Some(deps) = other.entity.spec.get("dependsOn") {
+                // Default an unqualified dependency to the centre entity's own
+                // kind so a Resource (or Component) centre is matched correctly.
+                let center_kind = center_ref.split(':').next().unwrap_or("component");
                 Self::check_array_ref_incoming(
                     deps,
-                    "component",
+                    center_kind,
                     center_ref,
                     RelationType::DependencyOf,
                     other,
@@ -600,6 +645,62 @@ mod tests {
         assert!(outgoing_types.contains(&RelationType::DependsOn));
         assert!(outgoing_types.contains(&RelationType::ProvidesApi));
         assert!(outgoing_types.contains(&RelationType::ConsumesApi));
+    }
+
+    fn create_resource(name: &str, spec: Value) -> EntityWithSource {
+        create_entity(EntityKind::Resource, name, spec)
+    }
+
+    #[test]
+    fn test_unqualified_depends_on_resolves_to_resource() {
+        // An unqualified `dependsOn` entry naming a Resource must resolve to it
+        // rather than being reported as a missing Component.
+        let spec = serde_yaml::from_str(
+            r#"
+            dependsOn:
+              - postgres-db
+            "#,
+        )
+        .unwrap();
+        let service = create_component("orders-service", spec);
+        let db = create_resource("postgres-db", Value::Null);
+
+        let all = vec![service.clone(), db];
+        let graph = RelationshipGraph::build(&service, &all);
+
+        let dep = graph
+            .outgoing
+            .iter()
+            .find(|(t, _)| *t == RelationType::DependsOn)
+            .map(|(_, n)| n)
+            .expect("dependsOn relationship present");
+        assert!(dep.exists, "resource dependency should resolve");
+        assert_eq!(dep.kind, "resource");
+    }
+
+    #[test]
+    fn test_resource_center_lists_incoming_dependency() {
+        // Viewing the Resource, the depending Component should appear as an
+        // incoming "depended on by" relationship.
+        let spec = serde_yaml::from_str(
+            r#"
+            dependsOn:
+              - postgres-db
+            "#,
+        )
+        .unwrap();
+        let service = create_component("orders-service", spec);
+        let db = create_resource("postgres-db", Value::Null);
+
+        let all = vec![service, db.clone()];
+        let graph = RelationshipGraph::build(&db, &all);
+
+        assert!(
+            graph.incoming.iter().any(
+                |(t, n)| *t == RelationType::DependencyOf && n.display_name == "orders-service"
+            ),
+            "resource should list its dependent component as incoming"
+        );
     }
 
     #[test]
