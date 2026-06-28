@@ -2,7 +2,9 @@
 # Cut a release: bump the version, run checks, commit, tag vX.Y.Z, and push.
 #
 # Usage:
-#   scripts/release.sh <version>        # e.g. scripts/release.sh 2026.3.0
+#   scripts/release.sh            # version defaults to today's date (YYYY.M.D)
+#   scripts/release.sh <version>  # or pin an explicit version
+#   make release                  # same, date-based
 #   make release VERSION=<version>
 #
 # Pushing the tag triggers the Release workflow, which builds the per-platform
@@ -10,7 +12,12 @@
 # packaging (Homebrew formula + Scoop manifest) with the new version/checksums.
 set -euo pipefail
 
-VERSION="${1:?usage: release.sh <version> (e.g. 2026.3.0)}"
+VERSION="${1:-}"
+if [ -z "$VERSION" ]; then
+    # Calendar version year.month.day with no zero padding (10# avoids the
+    # leading-zero-is-octal trap), matching the existing scheme (e.g. 2026.2.12).
+    VERSION="$(date +%Y).$((10#$(date +%m))).$((10#$(date +%d)))"
+fi
 VERSION="${VERSION#v}"
 TAG="v${VERSION}"
 

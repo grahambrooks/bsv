@@ -3,7 +3,8 @@
 # Run `make` (or `make help`) to list the available targets.
 #
 # Cutting a release:
-#   make release VERSION=2026.3.0
+#   make release                 # version defaults to today's date (YYYY.M.D)
+#   make release VERSION=2026.3.0 # or pin an explicit version
 # This bumps Cargo.toml, runs all checks, commits, tags vX.Y.Z and pushes.
 # The Release workflow then builds the per-platform artifacts, publishes the
 # GitHub Release, and regenerates the in-repo install packaging (Homebrew
@@ -119,6 +120,5 @@ update-packaging: ## Regenerate manifests: make update-packaging VERSION=x.y.z C
 	scripts/update-packaging.sh "$(VERSION)" "$(CHECKSUMS)"
 
 .PHONY: release
-release: ## Cut a release: make release VERSION=2026.3.0
-	@test -n "$(VERSION)" || { echo "error: VERSION is required, e.g. make release VERSION=2026.3.0" >&2; exit 1; }
-	@scripts/release.sh "$(VERSION)"
+release: ## Cut a release (version defaults to today's date; override with VERSION=)
+	@scripts/release.sh $(VERSION)

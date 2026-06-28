@@ -9,13 +9,15 @@ Use the Makefile target, which gates on a green build and handles the version
 bump, commit, tag, and push:
 
 ```bash
-make release VERSION=2026.3.0
+make release                  # version defaults to today's date, e.g. 2026.6.28
+make release VERSION=2026.3.0  # or pin an explicit version
 ```
 
-This (via [`scripts/release.sh`](scripts/release.sh)):
+Versions are calendar-based (`year.month.day`), so a bare `make release` stamps
+today's date. This (via [`scripts/release.sh`](scripts/release.sh)):
 
 1. verifies the working tree is clean, you're on an up-to-date `main`, and the
-   tag doesn't already exist;
+   tag doesn't already exist (a same-day re-release needs an explicit `VERSION=`);
 2. runs `make check` (format, clippy, tests, shellcheck, packaging smoke test);
 3. bumps the version in `Cargo.toml`, refreshes `Cargo.lock`;
 4. commits `Release vX.Y.Z`, creates an annotated tag, and pushes both.
