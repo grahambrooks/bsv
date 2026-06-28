@@ -16,7 +16,7 @@ A terminal UI application for exploring and visualizing [Backstage](https://back
 - **Relationship Graph**: Visualize how entities relate to each other (dependencies, APIs, ownership)
 - **Documentation Browser**: View TechDocs and ADR markdown files directly in the terminal
 - **Reference Validation**: Highlights missing or invalid entity references
-- **Search**: Filter entities by name with `/` search
+- **Search**: Incremental `/` search across name, title, description, kind, owner, and tags, with field-scoped queries (`owner:team-a`, `tag:backend`, `kind:component`, `system:…`, `domain:…`)
 - **Live Reload**: Refresh catalog data without restarting
 
 ## Installation

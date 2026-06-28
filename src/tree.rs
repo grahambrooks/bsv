@@ -596,14 +596,96 @@ impl EntityTree {
         self.nodes.get(id)
     }
 
-    /// Filter visible nodes by search query
+    /// Filter visible nodes by a search query.
+    ///
+    /// A bare query matches across the label, name, title, description, kind,
+    /// owner, and tags. A `field:value` query (e.g. `owner:team-a`, `tag:web`,
+    /// `kind:component`) restricts the match to that field of entity nodes.
     pub fn filter_by_search<'a>(nodes: Vec<&'a TreeNode>, search_query: &str) -> Vec<&'a TreeNode> {
-        let query = search_query.to_lowercase();
+        let query = search_query.trim().to_lowercase();
+        if query.is_empty() {
+            return nodes;
+        }
         nodes
             .into_iter()
-            .filter(|n| n.label.to_lowercase().contains(&query))
+            .filter(|n| node_matches(n, &query))
             .collect()
     }
+}
+
+/// Recognized `field:` scopes for search.
+fn known_field(field: &str) -> bool {
+    matches!(
+        field,
+        "name"
+            | "title"
+            | "kind"
+            | "owner"
+            | "system"
+            | "domain"
+            | "tag"
+            | "tags"
+            | "lifecycle"
+            | "type"
+            | "namespace"
+            | "ns"
+            | "desc"
+            | "description"
+    )
+}
+
+/// Resolve a single searchable field of an entity to a string, if present.
+fn field_value(entity: &crate::entity::Entity, field: &str) -> Option<String> {
+    match field {
+        "name" => Some(entity.metadata.name.clone()),
+        "title" => entity.metadata.title.clone(),
+        "kind" => Some(entity.kind.to_string()),
+        "owner" => entity.owner(),
+        "system" => entity.system(),
+        "domain" => entity.domain(),
+        "tag" | "tags" => Some(entity.metadata.tags.join(" ")),
+        "lifecycle" => entity.lifecycle(),
+        "type" => entity.entity_type(),
+        "namespace" | "ns" => entity.metadata.namespace.clone(),
+        "desc" | "description" => entity.metadata.description.clone(),
+        _ => None,
+    }
+}
+
+/// Whether a node matches a (already-lowercased, non-empty) query.
+fn node_matches(node: &TreeNode, query: &str) -> bool {
+    // Field-scoped query: `field:value` restricted to entity nodes.
+    if let Some((field, value)) = query.split_once(':') {
+        if known_field(field) {
+            let value = value.trim();
+            return match &node.entity {
+                Some(ews) => field_value(&ews.entity, field)
+                    .is_some_and(|v| v.to_lowercase().contains(value)),
+                None => false,
+            };
+        }
+    }
+
+    // Free-text query: match the label or any common entity field.
+    if node.label.to_lowercase().contains(query) {
+        return true;
+    }
+    let Some(ews) = &node.entity else {
+        return false;
+    };
+    let e = &ews.entity;
+    let haystacks = [
+        Some(e.metadata.name.clone()),
+        e.metadata.title.clone(),
+        e.metadata.description.clone(),
+        Some(e.kind.to_string()),
+        e.owner(),
+        Some(e.metadata.tags.join(" ")),
+    ];
+    haystacks
+        .iter()
+        .flatten()
+        .any(|h| h.to_lowercase().contains(query))
 }
 
 #[cfg(test)]
@@ -791,6 +873,62 @@ mod tests {
         // Filter by category name
         let filtered = EntityTree::filter_by_search(visible, "Other");
         assert_eq!(filtered.len(), 1, "Should match 'Other Entities' category");
+    }
+
+    #[test]
+    fn test_scoped_and_multifield_search() {
+        use crate::entity::{Entity, Metadata};
+        use std::path::PathBuf;
+
+        let mut spec = serde_yaml::Mapping::new();
+        spec.insert(
+            serde_yaml::Value::String("owner".to_string()),
+            serde_yaml::Value::String("platform-team".to_string()),
+        );
+        let billing = EntityWithSource::new(
+            Entity {
+                api_version: "backstage.io/v1alpha1".to_string(),
+                kind: EntityKind::Component,
+                metadata: Metadata {
+                    name: "billing".to_string(),
+                    title: Some("Billing Service".to_string()),
+                    namespace: Some("default".to_string()),
+                    description: Some("Handles invoices".to_string()),
+                    labels: HashMap::new(),
+                    annotations: HashMap::new(),
+                    tags: vec!["payments".to_string(), "backend".to_string()],
+                    links: Vec::new(),
+                },
+                spec: serde_yaml::Value::Mapping(spec),
+            },
+            PathBuf::from("c.yaml"),
+        );
+        let reports_api = create_test_entity(EntityKind::Api, "reports-api", None, None);
+
+        let tree = EntityTree::build(vec![billing, reports_api]);
+        let mut state = TreeState::new();
+        state.expand_all(&tree);
+        let visible = tree.visible_nodes(&state);
+
+        let count = |q: &str| EntityTree::filter_by_search(visible.clone(), q).len();
+
+        // Field-scoped queries
+        assert_eq!(count("owner:platform-team"), 1, "owner scope");
+        assert_eq!(count("owner:other"), 0, "owner scope, no match");
+        assert_eq!(count("tag:payments"), 1, "tag scope");
+        assert_eq!(count("kind:api"), 1, "kind scope matches the API only");
+
+        // Free-text across fields
+        assert_eq!(count("invoices"), 1, "matches description");
+        assert_eq!(count("Billing"), 1, "matches title (case-insensitive)");
+        assert_eq!(count("backend"), 1, "matches a tag in free text");
+
+        // Unknown field prefix is treated as free text (no crash, no match here)
+        assert_eq!(
+            count("color:red"),
+            0,
+            "unknown scope -> free text, no match"
+        );
     }
 
     #[test]
