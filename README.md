@@ -141,6 +141,7 @@ raw YAML view.
 | `y` | Toggle raw YAML view of the selected entity |
 | `d` | Open documentation browser (when available) |
 | `r` | Reload catalog |
+| `?` | Show keyboard shortcut help |
 | `q` | Quit |
 
 ### Documentation Browser

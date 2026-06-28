@@ -43,4 +43,9 @@ pub fn draw(frame: &mut Frame, app: &App) {
     } else {
         details::draw_details(frame, app, chunks[1]);
     }
+
+    // The help overlay floats above everything else.
+    if app.show_help {
+        help::draw_help_overlay(frame, frame.area());
+    }
 }

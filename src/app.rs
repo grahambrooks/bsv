@@ -108,7 +108,7 @@
 use crate::docs::{parse_docs_refs, DocsBrowser, DocsRef};
 use crate::entity::{EntityIndex, EntityWithSource};
 use crate::graph::RelationshipGraph;
-use crate::parser::load_all_entities;
+use crate::parser::load_catalog;
 use crate::tree::{EntityTree, TreeNode, TreeState};
 use anyhow::Result;
 use std::path::{Path, PathBuf};
@@ -143,6 +143,10 @@ pub struct App {
     pub focus: Focus,
     /// Vertical scroll offset (in rows) for the right-hand detail/graph panel.
     pub detail_scroll: u16,
+    /// Non-fatal messages from the last load (unparsable docs, reload failures).
+    pub load_warnings: Vec<String>,
+    /// Whether the keyboard-shortcut help overlay is showing.
+    pub show_help: bool,
     pub docs_browser: Option<DocsBrowser>,
     root_path: PathBuf,
 }
@@ -152,7 +156,7 @@ impl App {
     ///
     /// Root categories are expanded by default for immediate visibility.
     pub fn new(root: &Path) -> Result<Self> {
-        let entities = load_all_entities(root)?;
+        let (entities, load_warnings) = load_catalog(root)?;
         let entity_count = entities.len();
         let entity_index = EntityIndex::build(&entities);
         let tree = EntityTree::build(entities.clone());
@@ -176,6 +180,8 @@ impl App {
             show_raw: false,
             focus: Focus::Tree,
             detail_scroll: 0,
+            load_warnings,
+            show_help: false,
             docs_browser: None,
             root_path: root.to_path_buf(),
         })
@@ -185,24 +191,36 @@ impl App {
     ///
     /// Useful when catalog files have changed and need to be re-parsed.
     pub fn reload(&mut self) {
-        if let Ok(entities) = load_all_entities(&self.root_path) {
-            self.entity_count = entities.len();
-            self.entity_index = EntityIndex::build(&entities);
-            self.tree = EntityTree::build(entities.clone());
-            self.entities = entities;
-            self.tree_state = TreeState::new();
-            // Expand root categories by default
-            for &root_id in &self.tree.root_children {
-                self.tree_state.expanded.insert(root_id);
+        match load_catalog(&self.root_path) {
+            Ok((entities, warnings)) => {
+                self.entity_count = entities.len();
+                self.entity_index = EntityIndex::build(&entities);
+                self.tree = EntityTree::build(entities.clone());
+                self.entities = entities;
+                self.tree_state = TreeState::new();
+                // Expand root categories by default
+                for &root_id in &self.tree.root_children {
+                    self.tree_state.expanded.insert(root_id);
+                }
+                self.search_query.clear();
+                self.search_active = false;
+                self.show_graph = false;
+                self.show_raw = false;
+                self.focus = Focus::Tree;
+                self.detail_scroll = 0;
+                self.load_warnings = warnings;
+                self.docs_browser = None;
             }
-            self.search_query.clear();
-            self.search_active = false;
-            self.show_graph = false;
-            self.show_raw = false;
-            self.focus = Focus::Tree;
-            self.detail_scroll = 0;
-            self.docs_browser = None;
+            Err(e) => {
+                // Keep the current catalog but make the failure visible.
+                self.load_warnings = vec![format!("Reload failed: {e}")];
+            }
         }
+    }
+
+    /// Toggle the keyboard-shortcut help overlay.
+    pub fn toggle_help(&mut self) {
+        self.show_help = !self.show_help;
     }
 
     pub fn toggle_graph(&mut self) {
@@ -546,6 +564,16 @@ mod tests {
 
         app.scroll_detail_home();
         assert_eq!(app.detail_scroll, 0);
+    }
+
+    #[test]
+    fn toggle_help_flips_flag() {
+        let mut app = test_app();
+        assert!(!app.show_help);
+        app.toggle_help();
+        assert!(app.show_help);
+        app.toggle_help();
+        assert!(!app.show_help);
     }
 
     #[test]

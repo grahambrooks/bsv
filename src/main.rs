@@ -152,6 +152,11 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: App) 
 
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
+                // While the help overlay is up, any key dismisses it.
+                if app.show_help {
+                    app.show_help = false;
+                    continue;
+                }
                 let visible_height = terminal.size()?.height.saturating_sub(4) as usize;
                 match app.input_mode() {
                     InputMode::Normal => handle_normal_mode(&mut app, key.code, visible_height),
@@ -171,6 +176,7 @@ fn handle_normal_mode(app: &mut App, key_code: KeyCode, visible_height: usize) {
     // Keys that apply regardless of which pane has focus.
     match key_code {
         KeyCode::Char('q') => return app.quit(),
+        KeyCode::Char('?') => return app.toggle_help(),
         KeyCode::Esc => return app.focus_tree_and_clear_search(),
         KeyCode::Tab => return app.toggle_focus(),
         KeyCode::Char('/') => return app.start_search(),

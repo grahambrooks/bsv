@@ -157,10 +157,15 @@ pub fn parse_catalog_file(path: &Path) -> Result<Vec<EntityWithSource>> {
     let content = fs::read_to_string(path)
         .with_context(|| format!("Failed to read file: {}", path.display()))?;
 
-    parse_multi_document_yaml(&content, path)
+    let mut warnings = Vec::new();
+    Ok(parse_multi_document_yaml(&content, path, &mut warnings))
 }
 
-fn parse_multi_document_yaml(content: &str, source_path: &Path) -> Result<Vec<EntityWithSource>> {
+fn parse_multi_document_yaml(
+    content: &str,
+    source_path: &Path,
+    warnings: &mut Vec<String>,
+) -> Vec<EntityWithSource> {
     let mut entities = Vec::new();
 
     for document in serde_yaml::Deserializer::from_str(content) {
@@ -175,40 +180,52 @@ fn parse_multi_document_yaml(content: &str, source_path: &Path) -> Result<Vec<En
                 );
             }
             Err(e) => {
-                eprintln!(
-                    "Warning: Failed to parse entity in {}: {}",
-                    source_path.display(),
-                    e
-                );
+                warnings.push(format!(
+                    "Failed to parse entity in {}: {e}",
+                    source_path.display()
+                ));
             }
         }
     }
 
-    Ok(entities)
+    entities
 }
 
-/// Load all entities from a directory or single file.
+/// Load all entities from a directory or single file, along with any non-fatal
+/// warnings (documents or files that could not be parsed and were skipped).
 ///
 /// If the path is a file, loads just that file. If it's a directory,
 /// recursively discovers and parses all catalog-info.yaml files.
-pub fn load_all_entities(root: &Path) -> Result<Vec<EntityWithSource>> {
-    // If path is a file, load just that file
+pub fn load_catalog(root: &Path) -> Result<(Vec<EntityWithSource>, Vec<String>)> {
+    let mut warnings = Vec::new();
+
     if root.is_file() {
-        return parse_catalog_file(root);
+        let content = fs::read_to_string(root)
+            .with_context(|| format!("Failed to read file: {}", root.display()))?;
+        let entities = parse_multi_document_yaml(&content, root, &mut warnings);
+        return Ok((entities, warnings));
     }
 
-    // Otherwise, discover catalog files in directory
-    let catalog_files = discover_catalog_files(root);
     let mut all_entities = Vec::new();
-
-    for file_path in catalog_files {
-        match parse_catalog_file(&file_path) {
-            Ok(entities) => all_entities.extend(entities),
-            Err(e) => eprintln!("Warning: {e}"),
+    for file_path in discover_catalog_files(root) {
+        match fs::read_to_string(&file_path) {
+            Ok(content) => {
+                all_entities.extend(parse_multi_document_yaml(
+                    &content,
+                    &file_path,
+                    &mut warnings,
+                ));
+            }
+            Err(e) => warnings.push(format!("Failed to read {}: {e}", file_path.display())),
         }
     }
 
-    Ok(all_entities)
+    Ok((all_entities, warnings))
+}
+
+/// Load all entities, discarding any non-fatal warnings. See [`load_catalog`].
+pub fn load_all_entities(root: &Path) -> Result<Vec<EntityWithSource>> {
+    Ok(load_catalog(root)?.0)
 }
 
 use serde::Deserialize;
@@ -342,8 +359,7 @@ spec:
 "#;
 
         let path = Path::new("test.yaml");
-        let entities = parse_multi_document_yaml(yaml_content, path)
-            .expect("Should parse multi-document YAML");
+        let entities = parse_multi_document_yaml(yaml_content, path, &mut Vec::new());
 
         assert_eq!(entities.len(), 3, "Should parse 3 entities");
 
@@ -517,8 +533,7 @@ spec:
         let yaml_content = "";
         let path = Path::new("empty.yaml");
 
-        let entities =
-            parse_multi_document_yaml(yaml_content, path).expect("Should handle empty YAML");
+        let entities = parse_multi_document_yaml(yaml_content, path, &mut Vec::new());
 
         assert_eq!(entities.len(), 0, "Empty YAML should produce no entities");
     }
@@ -549,13 +564,18 @@ spec:
 "#;
 
         let path = Path::new("mixed.yaml");
-        let entities = parse_multi_document_yaml(yaml_content, path)
-            .expect("Should parse valid entities and skip invalid ones");
+        let mut warnings = Vec::new();
+        let entities = parse_multi_document_yaml(yaml_content, path, &mut warnings);
 
         // Should parse the valid entities and skip the invalid one
         assert_eq!(entities.len(), 2, "Should parse 2 valid entities");
         assert_eq!(entities[0].entity.metadata.name, "good-service");
         assert_eq!(entities[1].entity.metadata.name, "another-good-service");
+        assert_eq!(
+            warnings.len(),
+            1,
+            "Invalid document should produce a warning"
+        );
     }
 
     #[test]
@@ -670,8 +690,7 @@ spec:
 "#;
 
         let path = Path::new("kinds.yaml");
-        let entities =
-            parse_multi_document_yaml(yaml_content, path).expect("Should parse all entity kinds");
+        let entities = parse_multi_document_yaml(yaml_content, path, &mut Vec::new());
 
         assert_eq!(entities.len(), 7, "Should parse 7 different entity kinds");
 
