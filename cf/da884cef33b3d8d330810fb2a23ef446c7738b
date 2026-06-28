@@ -1,0 +1,28 @@
+.github/workflows/ci.yml
+  s_ff8d6f861ed694::t_f56aef64cfbbe5 58
+Makefile
+  s_ff8d6f861ed694::t_db74ca6d940569 18,20-21,78-81,86-94,96-99,102-103,106-108,117-118,123-124
+  s_ff8d6f861ed694::t_7d8b94398e8d81 1-17,19,22-77,82-85,95,100-101,104-105,109-116,119-122
+RELEASING.md
+  s_ff8d6f861ed694::t_cc13be6511d99b 8-9,11-15,17-24
+  s_ff8d6f861ed694::t_982948024ba561 48-49,53
+  s_ff8d6f861ed694::t_1ab7da6d97b343 54
+scripts/release.sh
+  s_ff8d6f861ed694::t_2a18653e8cc7d9 1-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "cfda884cef33b3d8d330810fb2a23ef446c7738b",
+  "prompts": {},
+  "sessions": {
+    "s_ff8d6f861ed694": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f8c3964d-263e-4fab-8692-418b7637f3f5",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Graham Brooks <graham@grahambrooks.com>"
+    }
+  }
+}
