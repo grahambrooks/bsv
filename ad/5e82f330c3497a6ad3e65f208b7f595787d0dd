@@ -1,0 +1,25 @@
+src/entity.rs
+  s_ff8d6f861ed694::t_521f2003fa5c5c 840-891
+  s_ff8d6f861ed694::t_b002339183eb0a 296-371
+  s_ff8d6f861ed694::t_3de721a7027ae9 839
+src/report.rs
+  s_ff8d6f861ed694::t_8a5964cb4a4395 80-81,84-85
+src/graph.rs
+  s_ff8d6f861ed694::t_47c6745786726a 234-247,256-260
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "ad5e82f330c3497a6ad3e65f208b7f595787d0dd",
+  "prompts": {},
+  "sessions": {
+    "s_ff8d6f861ed694": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f8c3964d-263e-4fab-8692-418b7637f3f5",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Graham Brooks <graham@grahambrooks.com>"
+    }
+  }
+}
