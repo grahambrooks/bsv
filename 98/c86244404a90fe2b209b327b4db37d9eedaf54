@@ -1,0 +1,41 @@
+src/ui/help.rs
+  s_ff8d6f861ed694::t_d3a285ddb7c618 102-106,108
+  s_ff8d6f861ed694::t_23065a71f66905 21-24
+src/app.rs
+  s_ff8d6f861ed694::t_277bbb62450e7a 833-895
+  s_ff8d6f861ed694::t_a64a0a4ec0e5bf 202
+  s_ff8d6f861ed694::t_1be908aca3cb37 159-161
+  s_ff8d6f861ed694::t_7150d5ba5cba4b 259,278,286,327,479,497,516,524,533,552,586,602
+  s_ff8d6f861ed694::t_b77a185b3554fb 388-454
+src/graph.rs
+  s_ff8d6f861ed694::t_eebddbb66c3a7e 147-161,166,179-185
+  s_ff8d6f861ed694::t_edc971186a8483 201
+  s_ff8d6f861ed694::t_9f39c150225cef 186,452,458-495
+  s_ff8d6f861ed694::t_a1757e890d7333 234-235,237,246-247,249,258
+  s_ff8d6f861ed694::t_0bd25abf08c62e 187
+src/ui/graph.rs
+  s_ff8d6f861ed694::t_5c7138704b4866 15-16,44-46,62-68,73-78,83-84,86-91,104-109,114-115,118-126,128-134,141-145
+  s_ff8d6f861ed694::t_7150d5ba5cba4b 69-72,79-82,135-138
+  s_ff8d6f861ed694::t_56eb7df84baab7 2
+src/main.rs
+  s_ff8d6f861ed694::t_de26d57ebb6579 282-288
+README.md
+  s_ff8d6f861ed694::t_d20cfb0fcb8c65 128-131
+  s_ff8d6f861ed694::t_cd73ff9a65f61e 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "98c86244404a90fe2b209b327b4db37d9eedaf54",
+  "prompts": {},
+  "sessions": {
+    "s_ff8d6f861ed694": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f8c3964d-263e-4fab-8692-418b7637f3f5",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Graham Brooks <graham@grahambrooks.com>"
+    }
+  }
+}
