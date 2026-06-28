@@ -21,20 +21,69 @@ A terminal UI application for exploring and visualizing [Backstage](https://back
 
 ## Installation
 
-### From Source
+Prebuilt binaries are published for macOS (Intel + Apple Silicon), Linux (x86_64),
+and Windows (x86_64) with every [release](https://github.com/grahambrooks/bsv/releases).
+Pick whichever method fits your platform.
+
+### macOS / Linux — Homebrew
+
+This repository doubles as a Homebrew tap, so no separate tap repo is needed:
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/bsv.git
-cd bsv
+brew install https://raw.githubusercontent.com/grahambrooks/bsv/main/Formula/bsv.rb
+```
 
-# Build and install
+Or tap it for `brew upgrade` support:
+
+```bash
+brew tap grahambrooks/bsv https://github.com/grahambrooks/bsv
+brew install bsv
+```
+
+### macOS / Linux — install script (curl or wget)
+
+```bash
+# curl
+curl -fsSL https://raw.githubusercontent.com/grahambrooks/bsv/main/install.sh | sh
+
+# wget
+wget -qO- https://raw.githubusercontent.com/grahambrooks/bsv/main/install.sh | sh
+```
+
+The script auto-detects your OS/architecture, verifies the download checksum, and
+installs to `~/.local/bin` (or `/usr/local/bin` when writable). Override with
+`BSV_VERSION` or `BSV_BIN_DIR`.
+
+### Windows — Scoop
+
+```powershell
+scoop bucket add bsv https://github.com/grahambrooks/bsv
+scoop install bsv
+```
+
+### Windows — install script (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/grahambrooks/bsv/main/install.ps1 | iex
+```
+
+Installs to `%LOCALAPPDATA%\Programs\bsv` and adds it to your user `PATH`.
+
+### Manual download
+
+Grab the archive for your platform from the
+[releases page](https://github.com/grahambrooks/bsv/releases), extract it, and put
+the `bsv` binary on your `PATH`. Each archive ships with a `.sha256` checksum file.
+
+### From source
+
+```bash
+git clone https://github.com/grahambrooks/bsv.git
+cd bsv
 cargo install --path .
 ```
 
-### Requirements
-
-- Rust 1.70 or later
+Requires Rust 1.70 or later.
 
 ## Usage
 
@@ -57,6 +106,7 @@ bsv /path/to/catalog-info.yaml
 |-----|--------|
 | `↑` / `k` | Move up |
 | `↓` / `j` | Move down |
+| `PgUp` / `PgDn` | Scroll up / down a page |
 | `←` / `h` | Collapse node |
 | `→` / `l` / `Enter` | Expand node |
 | `e` | Expand all nodes |

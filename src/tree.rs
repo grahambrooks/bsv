@@ -501,9 +501,14 @@ impl EntityTree {
 
         if let Some(kids) = children_of.get(name) {
             for kid in kids {
-                if let Some(child_id) =
-                    Self::build_group_subtree(nodes, group_map, children_of, kid, depth + 1, visited)
-                {
+                if let Some(child_id) = Self::build_group_subtree(
+                    nodes,
+                    group_map,
+                    children_of,
+                    kid,
+                    depth + 1,
+                    visited,
+                ) {
                     nodes[id].children.push(child_id);
                 }
             }
@@ -1005,7 +1010,11 @@ mod tests {
 
         let groups_node = &tree.nodes[tree.root_children[0]];
         assert_eq!(groups_node.label, "Groups");
-        assert_eq!(groups_node.children.len(), 1, "Only root group at top level");
+        assert_eq!(
+            groups_node.children.len(),
+            1,
+            "Only root group at top level"
+        );
         let parent_node = &tree.nodes[groups_node.children[0]];
         assert!(parent_node.label.contains("parent-team"));
         assert_eq!(parent_node.children.len(), 1);

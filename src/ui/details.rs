@@ -224,12 +224,9 @@ fn format_child_group_tree(
 
         let ref_line = format_entity_ref(child, "group", index);
         lines.push(Line::from(
-            std::iter::once(Span::styled(
-                format!("{prefix}{connector}"),
-                dimmed_style(),
-            ))
-            .chain(ref_line)
-            .collect::<Vec<_>>(),
+            std::iter::once(Span::styled(format!("{prefix}{connector}"), dimmed_style()))
+                .chain(ref_line)
+                .collect::<Vec<_>>(),
         ));
 
         // Recurse into the child's own children, if we can resolve it and have
@@ -241,8 +238,7 @@ fn format_child_group_tree(
             if visited.insert(child_entity.entity.ref_key()) {
                 let grandchildren = child_entity.entity.children();
                 if !grandchildren.is_empty() {
-                    let child_prefix =
-                        format!("{prefix}{}", if is_last { "   " } else { "│  " });
+                    let child_prefix = format!("{prefix}{}", if is_last { "   " } else { "│  " });
                     format_child_group_tree(
                         &grandchildren,
                         index,

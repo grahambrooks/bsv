@@ -22,7 +22,34 @@ use std::{env, io, path::PathBuf};
 
 use app::{App, InputMode};
 
+const HELP: &str = "\
+bsv - Backstage Entity Visualizer
+
+USAGE:
+    bsv [PATH]
+
+ARGS:
+    PATH    Directory to scan for catalog-info.yaml files, or a single
+            catalog file. Defaults to the current directory.
+
+OPTIONS:
+    -h, --help       Print this help and exit
+    -V, --version    Print version and exit";
+
 fn main() -> Result<()> {
+    // Handle informational flags before taking over the terminal.
+    match env::args().nth(1).as_deref() {
+        Some("-V" | "--version") => {
+            println!("bsv {}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        Some("-h" | "--help") => {
+            println!("{HELP}");
+            return Ok(());
+        }
+        _ => {}
+    }
+
     let root = env::args().nth(1).map_or_else(
         || env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
         PathBuf::from,
