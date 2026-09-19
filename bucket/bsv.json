@@ -1,12 +1,12 @@
 {
-    "version": "2026.6.28",
+    "version": "2026.9.2",
     "description": "Backstage Entity Visualizer - TUI for exploring catalog-info.yaml files",
     "homepage": "https://github.com/grahambrooks/bsv",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/grahambrooks/bsv/releases/download/v2026.6.28/bsv-x86_64-pc-windows-msvc.zip",
-            "hash": "45445b43135c1e127c32505788c5725abd57cdfa3b5c3be918efe706f11c4191",
+            "url": "https://github.com/grahambrooks/bsv/releases/download/v2026.9.2/bsv-v2026.9.2-x86_64-pc-windows-msvc.zip",
+            "hash": "4bbeb3f0e53b8897c81b26820165e4a5efee5ab3a2a0a5841fedbb48454c4647",
             "bin": "bsv.exe"
         }
     },
@@ -16,7 +16,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://github.com/grahambrooks/bsv/releases/download/v$version/bsv-x86_64-pc-windows-msvc.zip"
+                "url": "https://github.com/grahambrooks/bsv/releases/download/v$version/bsv-v$version-x86_64-pc-windows-msvc.zip"
             }
         }
     }
