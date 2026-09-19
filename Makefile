@@ -6,9 +6,9 @@
 #   make release                 # version defaults to today's date (YYYY.M.D)
 #   make release VERSION=2026.3.0 # or pin an explicit version
 # This bumps Cargo.toml, runs all checks, commits, tags vX.Y.Z and pushes.
-# The Release workflow then builds the per-platform artifacts, publishes the
-# GitHub Release, and regenerates the in-repo install packaging (Homebrew
-# formula + Scoop manifest) with the new version and checksums.
+# The release workflow (release-kit v2) then builds the per-platform archives,
+# publishes the GitHub Release and SHA256SUMS, and merges a PR updating the
+# Homebrew formula; release-extras.yml then does the same for the Scoop manifest.
 
 SHELL := bash
 .DEFAULT_GOAL := help
@@ -18,8 +18,8 @@ CURRENT_VERSION := $(shell grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"(.*)
 
 # `release`/`update-packaging` arguments (must be supplied on the command line).
 VERSION ?=
-# Directory of "<asset>.sha256" files for `update-packaging` (the Release
-# workflow passes the downloaded artifacts; rarely needed by hand).
+# The release's SHA256SUMS file for `update-packaging` (release-extras.yml
+# passes the published one; rarely needed by hand).
 CHECKSUMS ?=
 
 ##@ General
@@ -83,20 +83,14 @@ shellcheck: ## Lint the shell scripts (skipped if shellcheck is absent)
 	fi
 
 .PHONY: verify-packaging
-verify-packaging: ## Smoke-test the Homebrew/Scoop manifest generator
+verify-packaging: ## Smoke-test the Scoop manifest generator
 	@set -e; \
 	tmp=$$(mktemp -d); \
-	trap 'cp "$$tmp/formula.orig" Formula/bsv.rb 2>/dev/null || true; \
-	      cp "$$tmp/bucket.orig" bucket/bsv.json 2>/dev/null || true; rm -rf "$$tmp"' EXIT; \
-	cp Formula/bsv.rb "$$tmp/formula.orig"; \
+	trap 'cp "$$tmp/bucket.orig" bucket/bsv.json 2>/dev/null || true; rm -rf "$$tmp"' EXIT; \
 	cp bucket/bsv.json "$$tmp/bucket.orig"; \
-	for t in aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu; do \
-		printf '%s  bsv-%s.tar.gz\n' "$$(printf '%064d' 0)" "$$t" > "$$tmp/bsv-$$t.tar.gz.sha256"; \
-	done; \
-	printf '%s  bsv-x86_64-pc-windows-msvc.zip\n' "$$(printf '%064d' 0)" \
-		> "$$tmp/bsv-x86_64-pc-windows-msvc.zip.sha256"; \
-	scripts/update-packaging.sh 9.9.9 "$$tmp" >/dev/null; \
-	grep -q 'version "9.9.9"' Formula/bsv.rb; \
+	printf '%s  bsv-v9.9.9-x86_64-pc-windows-msvc.zip\n' "$$(printf '%064d' 0)" > "$$tmp/SHA256SUMS"; \
+	scripts/update-packaging.sh 9.9.9 "$$tmp/SHA256SUMS" >/dev/null; \
+	grep -q '"version": "9.9.9"' bucket/bsv.json; \
 	python3 -m json.tool bucket/bsv.json >/dev/null; \
 	echo "packaging generator OK"
 
@@ -114,9 +108,9 @@ version: ## Print the current crate version
 	@echo "$(CURRENT_VERSION)"
 
 .PHONY: update-packaging
-update-packaging: ## Regenerate manifests: make update-packaging VERSION=x.y.z CHECKSUMS=dir
+update-packaging: ## Regenerate the Scoop manifest: make update-packaging VERSION=x.y.z CHECKSUMS=SHA256SUMS
 	@test -n "$(VERSION)"   || { echo "error: VERSION is required" >&2; exit 1; }; \
-	test -n "$(CHECKSUMS)" || { echo "error: CHECKSUMS (dir of *.sha256) is required" >&2; exit 1; }; \
+	test -n "$(CHECKSUMS)" || { echo "error: CHECKSUMS (path to SHA256SUMS) is required" >&2; exit 1; }; \
 	scripts/update-packaging.sh "$(VERSION)" "$(CHECKSUMS)"
 
 .PHONY: release

@@ -24,7 +24,6 @@ param(
 $ErrorActionPreference = 'Stop'
 $Repo = 'grahambrooks/bsv'
 $Target = 'x86_64-pc-windows-msvc'
-$Asset = "bsv-$Target.zip"
 
 function Info($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 
@@ -39,7 +38,12 @@ if ([string]::IsNullOrEmpty($Version)) {
 }
 $Tag = if ($Version.StartsWith('v')) { $Version } else { "v$Version" }
 
-$Url = "https://github.com/$Repo/releases/download/$Tag/$Asset"
+# Releases since release-kit v2 name archives bsv-<tag>-<target>.zip and publish
+# one SHA256SUMS file; older releases used bsv-<target>.zip with a .sha256 file
+# beside each archive. Try the current layout first.
+$Base = "https://github.com/$Repo/releases/download/$Tag"
+$Asset = "bsv-$Tag-$Target.zip"
+$LegacyAsset = "bsv-$Target.zip"
 
 # --- choose install dir ------------------------------------------------------
 if ([string]::IsNullOrEmpty($BinDir)) {
@@ -50,22 +54,41 @@ New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 # --- download and install ----------------------------------------------------
 $Tmp = New-Item -ItemType Directory -Force -Path (Join-Path $env:TEMP ("bsv-" + [System.Guid]::NewGuid().ToString()))
 try {
-    $zip = Join-Path $Tmp $Asset
-    Info "Downloading $Asset ($Tag)..."
-    Invoke-WebRequest -Uri $Url -OutFile $zip
-
-    # Verify checksum if the .sha256 asset is published alongside the archive.
+    Info "Downloading bsv $Tag for $Target..."
     try {
-        $shaFile = "$zip.sha256"
-        Invoke-WebRequest -Uri "$Url.sha256" -OutFile $shaFile -ErrorAction Stop
-        $expected = ((Get-Content $shaFile -Raw).Trim() -split '\s+')[0]
+        $zip = Join-Path $Tmp $Asset
+        Invoke-WebRequest -Uri "$Base/$Asset" -OutFile $zip -ErrorAction Stop
+    } catch {
+        $Asset = $LegacyAsset
+        $zip = Join-Path $Tmp $Asset
+        Invoke-WebRequest -Uri "$Base/$Asset" -OutFile $zip -ErrorAction Stop
+    }
+
+    # Verify the checksum when the release publishes one (SHA256SUMS, or the
+    # older per-archive .sha256 file); continue without verification otherwise.
+    $expected = $null
+    try {
+        $sums = Join-Path $Tmp 'SHA256SUMS'
+        Invoke-WebRequest -Uri "$Base/SHA256SUMS" -OutFile $sums -ErrorAction Stop
+        foreach ($line in Get-Content $sums) {
+            $parts = $line.Trim() -split '\s+'
+            if ($parts.Count -ge 2 -and $parts[1] -eq $Asset) { $expected = $parts[0] }
+        }
+    } catch {
+        try {
+            $shaFile = "$zip.sha256"
+            Invoke-WebRequest -Uri "$Base/$Asset.sha256" -OutFile $shaFile -ErrorAction Stop
+            $expected = ((Get-Content $shaFile -Raw).Trim() -split '\s+')[0]
+        } catch {
+            # No checksum published.
+        }
+    }
+    if ($expected) {
         $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
         if ($expected.ToLower() -ne $actual) {
             throw "Checksum mismatch (expected $expected, got $actual)"
         }
         Info 'Checksum verified.'
-    } catch [System.Net.WebException] {
-        # No checksum published; continue without verification.
     }
 
     Expand-Archive -Path $zip -DestinationPath $Tmp -Force

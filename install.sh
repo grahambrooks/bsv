@@ -42,13 +42,7 @@ esac
 
 case "$arch" in
     x86_64 | amd64) arch_part="x86_64" ;;
-    arm64 | aarch64)
-        if [ "$os" = "Darwin" ]; then
-            arch_part="aarch64"
-        else
-            err "no prebuilt binary for $os/$arch yet; install from source with 'cargo install --path .'"
-        fi
-        ;;
+    arm64 | aarch64) arch_part="aarch64" ;;
     *) err "unsupported architecture: $arch" ;;
 esac
 
@@ -65,8 +59,12 @@ fi
 # Accept both "v1.2.3" and "1.2.3".
 case "$version" in v*) tag="$version" ;; *) tag="v$version" ;; esac
 
-asset="${BIN_NAME}-${target}.tar.gz"
-url="https://github.com/${REPO}/releases/download/${tag}/${asset}"
+# Releases since release-kit v2 name archives <bin>-<tag>-<target>.tar.gz and
+# publish one SHA256SUMS file; older releases used <bin>-<target>.tar.gz with a
+# .sha256 file beside each archive. Try the current layout first.
+base="https://github.com/${REPO}/releases/download/${tag}"
+asset="${BIN_NAME}-${tag}-${target}.tar.gz"
+legacy_asset="${BIN_NAME}-${target}.tar.gz"
 
 # --- choose install dir ------------------------------------------------------
 bin_dir="${BSV_BIN_DIR:-}"
@@ -83,12 +81,21 @@ mkdir -p "$bin_dir"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-info "Downloading ${asset} (${tag})..."
-dl_to "$url" "${tmp}/${asset}" || err "download failed: $url"
+info "Downloading ${BIN_NAME} ${tag} for ${target}..."
+if ! dl_to "${base}/${asset}" "${tmp}/${asset}" 2>/dev/null; then
+    asset="$legacy_asset"
+    dl_to "${base}/${asset}" "${tmp}/${asset}" || err "download failed: ${base}/${asset}"
+fi
 
-# Verify checksum if the .sha256 asset is published alongside the archive.
-if dl_to "${url}.sha256" "${tmp}/${asset}.sha256" 2>/dev/null; then
+# Verify the checksum when the release publishes one (SHA256SUMS, or the older
+# per-archive .sha256 file).
+expected=""
+if dl_to "${base}/SHA256SUMS" "${tmp}/SHA256SUMS" 2>/dev/null; then
+    expected="$(awk -v a="$asset" '$2 == a { print $1 }' "${tmp}/SHA256SUMS")"
+elif dl_to "${base}/${asset}.sha256" "${tmp}/${asset}.sha256" 2>/dev/null; then
     expected="$(cut -d' ' -f1 < "${tmp}/${asset}.sha256")"
+fi
+if [ -n "$expected" ]; then
     if command -v sha256sum >/dev/null 2>&1; then
         actual="$(sha256sum "${tmp}/${asset}" | cut -d' ' -f1)"
     else

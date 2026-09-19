@@ -22,15 +22,19 @@ today's date. This (via [`scripts/release.sh`](scripts/release.sh)):
 3. bumps the version in `Cargo.toml`, refreshes `Cargo.lock`;
 4. commits `Release vX.Y.Z`, creates an annotated tag, and pushes both.
 
-Pushing the tag triggers the [`Release`](.github/workflows/release.yml) workflow,
-which then:
-   - builds release binaries for macOS (Intel + Apple Silicon), Linux (x86_64),
-     and Windows (x86_64);
-   - packages each as a `.tar.gz`/`.zip` with a matching `.sha256`;
-   - creates the GitHub Release with all assets and generated notes;
-   - regenerates `Formula/bsv.rb` and `bucket/bsv.json` with the new version and
-     checksums via [`scripts/update-packaging.sh`](scripts/update-packaging.sh) and
-     commits them back to `main`.
+Pushing the tag triggers the [`release`](.github/workflows/release.yml) workflow
+(release-kit v2; configured by [`.release.env`](.release.env)), which then:
+   - stamps the tag's version into `Cargo.toml` and builds release binaries for
+     macOS (Intel + Apple Silicon), Linux (x86_64 + arm64), and Windows (x86_64);
+   - uploads each as `bsv-vX.Y.Z-<target>.tar.gz` (`.zip` on Windows) to the
+     GitHub Release, plus one `SHA256SUMS` file;
+   - regenerates `Formula/bsv.rb` via [`scripts/release.py`](scripts/release.py)
+     and merges it to `main` through a pull request.
+
+When that succeeds, [`release-extras`](.github/workflows/release-extras.yml)
+regenerates `bucket/bsv.json` from the published `SHA256SUMS` via
+[`scripts/update-packaging.sh`](scripts/update-packaging.sh) and merges it the
+same way.
 
 ## What ships where
 
@@ -41,15 +45,16 @@ which then:
 | Shell installer | `install.sh` | `curl`/`wget` \| `sh` |
 | PowerShell installer | `install.ps1` | `irm … \| iex` |
 
-## Updating manifests by hand
+## Updating the Scoop manifest by hand
 
-If you ever need to regenerate the manifests outside CI, download the release
-archives' `.sha256` files into a directory and run:
+The Homebrew formula is only ever written by the release workflow. If you need
+to regenerate the Scoop manifest outside CI, download the release's `SHA256SUMS`
+and run:
 
 ```bash
-make update-packaging VERSION=<version> CHECKSUMS=<dir-with-sha256-files>
+make update-packaging VERSION=<version> CHECKSUMS=<path-to-SHA256SUMS>
 # or directly:
-scripts/update-packaging.sh <version> <dir-with-sha256-files>
+scripts/update-packaging.sh <version> <path-to-SHA256SUMS>
 ```
 
 `make verify-packaging` smoke-tests the generator without leaving any changes.

@@ -63,15 +63,10 @@ jobs:
 
       - name: Smoke-test packaging generator
         run: |
-          mkdir -p /tmp/cksums
-          for t in aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu; do
-            printf '%s  bsv-%s.tar.gz\n' "$(printf '%064d' 0)" "$t" \
-              > "/tmp/cksums/bsv-$t.tar.gz.sha256"
-          done
-          printf '%s  bsv-x86_64-pc-windows-msvc.zip\n' "$(printf '%064d' 0)" \
-            > /tmp/cksums/bsv-x86_64-pc-windows-msvc.zip.sha256
-          scripts/update-packaging.sh 9.9.9 /tmp/cksums
-          grep -q 'version "9.9.9"' Formula/bsv.rb
+          printf '%s  bsv-v9.9.9-x86_64-pc-windows-msvc.zip\n' "$(printf '%064d' 0)" \
+            > /tmp/SHA256SUMS
+          scripts/update-packaging.sh 9.9.9 /tmp/SHA256SUMS
+          grep -q '"version": "9.9.9"' bucket/bsv.json
           python3 -m json.tool bucket/bsv.json > /dev/null
           # Restore the working tree so the smoke test leaves no diff.
-          git checkout -- Formula/bsv.rb bucket/bsv.json
+          git checkout -- bucket/bsv.json

@@ -7,9 +7,10 @@
 #   make release                  # same, date-based
 #   make release VERSION=<version>
 #
-# Pushing the tag triggers the Release workflow, which builds the per-platform
-# binaries, publishes the GitHub Release, and commits the regenerated install
-# packaging (Homebrew formula + Scoop manifest) with the new version/checksums.
+# Pushing the tag triggers the release workflow (release-kit v2), which builds
+# the per-platform binaries, publishes the GitHub Release, and merges the
+# regenerated Homebrew formula; release-extras.yml then refreshes the Scoop
+# manifest.
 set -euo pipefail
 
 VERSION="${1:-}"
@@ -64,7 +65,7 @@ git push origin main "$TAG"
 cat <<EOF
 
 ==> Pushed ${TAG}.
-    The Release workflow will now build per-platform binaries, publish the
-    GitHub Release, and commit updated Formula/bsv.rb + bucket/bsv.json
-    (Homebrew + Scoop) with the new version and checksums.
+    The release workflow will now build per-platform binaries, publish the
+    GitHub Release, and merge updated Formula/bsv.rb; release-extras then
+    merges bucket/bsv.json (Homebrew + Scoop) with the new checksums.
 EOF
