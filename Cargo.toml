@@ -1,6 +1,6 @@
 [package]
 name = "bsv"
-version = "2026.9.2"
+version = "2026.10.1"
 edition = "2021"
 description = "Backstage Entity Visualizer - TUI for exploring catalog-info.yaml files"
 license = "MIT"
