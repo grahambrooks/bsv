@@ -1,0 +1,49 @@
+.github/workflows/ci.yml
+  s_3af201839d09d6::t_7e378801cb5c65 5,7-12,23,31-36,38-59,61-66,68-70
+Cargo.toml
+  s_3af201839d09d6::t_65131d9f98adfa 4,13
+rust-toolchain.toml
+  s_3af201839d09d6::t_b0d55aa6e5af7d 1-4
+src/app.rs
+  s_3af201839d09d6::t_e76e69af0e04e9 108,251-254,371-374,626-629,690-693,708-711
+src/docs.rs
+  s_3af201839d09d6::t_d1e023c9878784 105-113,134-140
+src/main.rs
+  s_3af201839d09d6::t_4c76de95e8c408 3,13,16,178-181,183-187
+src/report.rs
+  s_3af201839d09d6::t_0a7a7dfe02d615 144
+src/tree.rs
+  s_3af201839d09d6::t_cc4c523c6512d0 707-716,1204-1208
+src/ui/details.rs
+  s_3af201839d09d6::t_8d25c7b6cb02a9 5,370-382,397-407
+src/ui/docs.rs
+  s_3af201839d09d6::t_8260924459cf4f 4
+src/ui/graph.rs
+  s_3af201839d09d6::t_6227b9e98a00ea 5
+src/ui/help.rs
+  s_3af201839d09d6::t_b14b85c4ecf7ba 4
+src/ui/mod.rs
+  s_3af201839d09d6::t_42745840724760 11
+src/ui/tree.rs
+  s_3af201839d09d6::t_3f3264a60f4ccf 4
+src/watcher.rs
+  s_3af201839d09d6::t_55b2ae3edcab47 10,25-29
+tests/render.rs
+  s_3af201839d09d6::t_658901a1b5c510 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "be09ccfa01f7bbda4e95c2b2e6eaae509bcfa543",
+  "prompts": {},
+  "sessions": {
+    "s_3af201839d09d6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ca62a504-f3e7-484c-9e2d-47cfc6cd0491",
+        "model": "unknown"
+      },
+      "human_author": "Graham Brooks <graham@grahambrooks.com>"
+    }
+  }
+}
