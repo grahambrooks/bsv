@@ -704,15 +704,16 @@ fn field_value(entity: &crate::entity::Entity, field: &str) -> Option<String> {
 /// Whether a node matches a (already-lowercased, non-empty) query.
 fn node_matches(node: &TreeNode, query: &str) -> bool {
     // Field-scoped query: `field:value` restricted to entity nodes.
-    if let Some((field, value)) = query.split_once(':') {
-        if known_field(field) {
-            let value = value.trim();
-            return match &node.entity {
-                Some(ews) => field_value(&ews.entity, field)
-                    .is_some_and(|v| v.to_lowercase().contains(value)),
-                None => false,
-            };
-        }
+    if let Some((field, value)) = query.split_once(':')
+        && known_field(field)
+    {
+        let value = value.trim();
+        return match &node.entity {
+            Some(ews) => {
+                field_value(&ews.entity, field).is_some_and(|v| v.to_lowercase().contains(value))
+            }
+            None => false,
+        };
     }
 
     // Free-text query: match the label or any common entity field.
@@ -1200,9 +1201,11 @@ mod tests {
             .find(|n| n.label == "Groups")
             .expect("Groups category");
         assert_eq!(groups_node.children.len(), 1, "Should contain the group");
-        assert!(tree.nodes[groups_node.children[0]]
-            .label
-            .contains("developers"));
+        assert!(
+            tree.nodes[groups_node.children[0]]
+                .label
+                .contains("developers")
+        );
     }
 
     #[test]

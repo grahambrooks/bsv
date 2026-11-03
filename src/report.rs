@@ -141,11 +141,7 @@ pub fn write_report<W: Write>(report: &Report, w: &mut W) -> io::Result<()> {
 }
 
 fn plural(n: usize) -> &'static str {
-    if n == 1 {
-        ""
-    } else {
-        "s"
-    }
+    if n == 1 { "" } else { "s" }
 }
 
 /// Truncate a long message to `max` characters, appending an ellipsis.

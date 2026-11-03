@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bsv::app::{App, InputMode};
-use bsv::cli::{parse_args, Command};
+use bsv::cli::{Command, parse_args};
 use bsv::parser::load_all_entities;
 use bsv::watcher::CatalogWatcher;
 use bsv::{report, ui};
@@ -10,12 +10,12 @@ use crossterm::{
         MouseEventKind,
     },
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
+    Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
-    Terminal,
 };
 use std::{
     env, io,
@@ -175,16 +175,16 @@ fn run_app(
         })?;
 
         // Note a filesystem change; the actual reload is debounced below.
-        if let Some(w) = &watcher {
-            if w.drain() {
-                pending_reload = Some(Instant::now());
-            }
+        if let Some(w) = &watcher
+            && w.drain()
+        {
+            pending_reload = Some(Instant::now());
         }
-        if let Some(since) = pending_reload {
-            if since.elapsed() >= RELOAD_DEBOUNCE {
-                app.reload();
-                pending_reload = None;
-            }
+        if let Some(since) = pending_reload
+            && since.elapsed() >= RELOAD_DEBOUNCE
+        {
+            app.reload();
+            pending_reload = None;
         }
 
         // Poll so the loop also wakes to service the watcher while idle.

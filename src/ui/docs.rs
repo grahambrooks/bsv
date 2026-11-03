@@ -1,11 +1,11 @@
 use crate::docs::DocsBrowser;
 use crate::ui::theme::*;
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
-    Frame,
 };
 
 pub fn draw_docs_browser(frame: &mut Frame, browser: &DocsBrowser, area: Rect) {

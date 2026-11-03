@@ -2,11 +2,11 @@ use crate::app::App;
 use crate::entity::{EntityIndex, EntityKind, EntityRef, EntityWithSource};
 use crate::ui::theme::*;
 use ratatui::{
+    Frame,
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
-    Frame,
 };
 use std::collections::HashSet;
 
@@ -367,20 +367,19 @@ fn format_child_group_tree(
         let child_name = EntityRef::parse(child, "group").name;
         if let Some(child_entity) = all_entities.iter().find(|e| {
             matches!(e.entity.kind, EntityKind::Group) && e.entity.metadata.name == child_name
-        }) {
-            if visited.insert(child_entity.entity.ref_key()) {
-                let grandchildren = child_entity.entity.children();
-                if !grandchildren.is_empty() {
-                    let child_prefix = format!("{prefix}{}", if is_last { "   " } else { "│  " });
-                    format_child_group_tree(
-                        &grandchildren,
-                        index,
-                        all_entities,
-                        &child_prefix,
-                        visited,
-                        lines,
-                    );
-                }
+        }) && visited.insert(child_entity.entity.ref_key())
+        {
+            let grandchildren = child_entity.entity.children();
+            if !grandchildren.is_empty() {
+                let child_prefix = format!("{prefix}{}", if is_last { "   " } else { "│  " });
+                format_child_group_tree(
+                    &grandchildren,
+                    index,
+                    all_entities,
+                    &child_prefix,
+                    visited,
+                    lines,
+                );
             }
         }
     }
@@ -395,17 +394,17 @@ fn format_group_members(
     let mut members: Vec<&EntityWithSource> = all_entities
         .iter()
         .filter(|e| {
-            if let Some(member_of) = e.entity.spec.get("memberOf") {
-                if let Some(member_of_arr) = member_of.as_sequence() {
-                    return member_of_arr.iter().any(|m| {
-                        if let Some(m_str) = m.as_str() {
-                            let parsed = EntityRef::parse(m_str, "group");
-                            parsed.canonical() == group_ref
-                        } else {
-                            false
-                        }
-                    });
-                }
+            if let Some(member_of) = e.entity.spec.get("memberOf")
+                && let Some(member_of_arr) = member_of.as_sequence()
+            {
+                return member_of_arr.iter().any(|m| {
+                    if let Some(m_str) = m.as_str() {
+                        let parsed = EntityRef::parse(m_str, "group");
+                        parsed.canonical() == group_ref
+                    } else {
+                        false
+                    }
+                });
             }
             false
         })

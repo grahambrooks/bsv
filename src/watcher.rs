@@ -7,7 +7,7 @@
 use anyhow::Result;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::Path;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{Receiver, channel};
 
 /// Watches a catalog directory (or a file's directory) for changes.
 pub struct CatalogWatcher {
@@ -22,11 +22,11 @@ impl CatalogWatcher {
     pub fn new(root: &Path) -> Result<Self> {
         let (tx, rx) = channel();
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<Event>| {
-            if let Ok(event) = res {
-                if is_relevant(&event) {
-                    // Ignore send errors: the receiver may have been dropped.
-                    let _ = tx.send(());
-                }
+            if let Ok(event) = res
+                && is_relevant(&event)
+            {
+                // Ignore send errors: the receiver may have been dropped.
+                let _ = tx.send(());
             }
         })?;
 

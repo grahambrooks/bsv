@@ -102,15 +102,15 @@ impl DocsBrowser {
             return;
         }
 
-        if let Some(file) = self.files.get(self.selected_index) {
-            if let Ok(content) = fs::read_to_string(&file.path) {
-                let lines: Vec<String> = content.lines().map(String::from).collect();
-                self.viewing_content = Some(DocContent {
-                    file: file.clone(),
-                    lines,
-                });
-                self.scroll_offset = 0;
-            }
+        if let Some(file) = self.files.get(self.selected_index)
+            && let Ok(content) = fs::read_to_string(&file.path)
+        {
+            let lines: Vec<String> = content.lines().map(String::from).collect();
+            self.viewing_content = Some(DocContent {
+                file: file.clone(),
+                lines,
+            });
+            self.scroll_offset = 0;
         }
     }
 
@@ -131,13 +131,13 @@ pub fn parse_docs_refs(annotations: &HashMap<String, String>, source_file: &Path
 
     for (key, value) in annotations {
         // TechDocs annotation
-        if key == "backstage.io/techdocs-ref" {
-            if let Some(path) = parse_techdocs_ref(value, source_dir) {
-                refs.push(DocsRef {
-                    ref_type: DocsRefType::TechDocs,
-                    path,
-                });
-            }
+        if key == "backstage.io/techdocs-ref"
+            && let Some(path) = parse_techdocs_ref(value, source_dir)
+        {
+            refs.push(DocsRef {
+                ref_type: DocsRefType::TechDocs,
+                path,
+            });
         }
 
         // ADR location annotation

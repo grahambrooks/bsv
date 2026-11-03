@@ -4,7 +4,7 @@
 
 use bsv::app::App;
 use bsv::ui;
-use ratatui::{backend::TestBackend, Terminal};
+use ratatui::{Terminal, backend::TestBackend};
 use std::path::Path;
 
 fn render(app: &App, width: u16, height: u16) -> String {

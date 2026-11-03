@@ -1,11 +1,11 @@
 use crate::app::App;
 use crate::ui::theme::*;
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
-    Frame,
 };
 
 pub fn draw_tree(frame: &mut Frame, app: &App, area: Rect) {

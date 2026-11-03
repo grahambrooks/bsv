@@ -2,11 +2,11 @@ use crate::app::App;
 use crate::graph::RelationshipGraph;
 use crate::ui::theme::*;
 use ratatui::{
+    Frame,
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
-    Frame,
 };
 
 /// Build the relationship lines for the selected entity, or `None` when nothing

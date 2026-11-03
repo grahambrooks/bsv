@@ -105,7 +105,7 @@
 //! - [`App`] - Main application state container
 //! - [`InputMode`] - Current input mode (Normal, Search, DocsBrowser)
 
-use crate::docs::{parse_docs_refs, DocsBrowser, DocsRef};
+use crate::docs::{DocsBrowser, DocsRef, parse_docs_refs};
 use crate::entity::{EntityIndex, EntityWithSource};
 use crate::graph::RelationshipGraph;
 use crate::parser::load_catalog;
@@ -248,10 +248,10 @@ impl App {
                         state.expanded.insert(root_id);
                     }
                 }
-                if let Some(sel) = selected {
-                    if let Some(node) = self.tree.nodes.iter().find(|n| node_identity(n) == sel) {
-                        state.selected = node.id;
-                    }
+                if let Some(sel) = selected
+                    && let Some(node) = self.tree.nodes.iter().find(|n| node_identity(n) == sel)
+                {
+                    state.selected = node.id;
                 }
                 self.tree_state = state;
 
@@ -368,10 +368,10 @@ impl App {
     pub fn relationship_graph(&self) -> Option<Rc<RelationshipGraph>> {
         let selected = self.tree_state.selected;
 
-        if let Some((id, graph)) = self.relationship_cache.borrow().as_ref() {
-            if *id == selected {
-                return Some(Rc::clone(graph));
-            }
+        if let Some((id, graph)) = self.relationship_cache.borrow().as_ref()
+            && *id == selected
+        {
+            return Some(Rc::clone(graph));
         }
 
         let entity = self.selected_entity()?;
@@ -623,10 +623,10 @@ impl App {
     }
 
     pub fn toggle_expand(&mut self) {
-        if let Some(node) = self.tree.get_node(self.tree_state.selected) {
-            if !node.children.is_empty() {
-                self.tree_state.toggle_expanded(self.tree_state.selected);
-            }
+        if let Some(node) = self.tree.get_node(self.tree_state.selected)
+            && !node.children.is_empty()
+        {
+            self.tree_state.toggle_expanded(self.tree_state.selected);
         }
     }
 
@@ -687,10 +687,10 @@ impl App {
         // Keep query active but exit input mode
         // Select first visible match if current selection is not visible
         let visible = self.visible_nodes();
-        if !visible.iter().any(|n| n.id == self.tree_state.selected) {
-            if let Some(first) = visible.first() {
-                self.tree_state.selected = first.id;
-            }
+        if !visible.iter().any(|n| n.id == self.tree_state.selected)
+            && let Some(first) = visible.first()
+        {
+            self.tree_state.selected = first.id;
         }
     }
 
@@ -705,10 +705,10 @@ impl App {
 
     fn update_selection_for_search(&mut self) {
         let visible = self.visible_nodes();
-        if !visible.iter().any(|n| n.id == self.tree_state.selected) {
-            if let Some(first) = visible.first() {
-                self.tree_state.selected = first.id;
-            }
+        if !visible.iter().any(|n| n.id == self.tree_state.selected)
+            && let Some(first) = visible.first()
+        {
+            self.tree_state.selected = first.id;
         }
     }
 

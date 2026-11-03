@@ -1,10 +1,10 @@
 use crate::app::App;
 use crate::ui::theme::{border_style, dimmed_style, label_style};
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
-    Frame,
 };
 
 const HELP_ROWS: &[(&str, &str)] = &[

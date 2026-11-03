@@ -7,8 +7,8 @@ mod tree;
 
 use crate::app::App;
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
     Frame,
+    layout::{Constraint, Direction, Layout, Rect},
 };
 
 // Re-export the main draw function
