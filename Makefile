@@ -2,21 +2,23 @@
 #
 # Run `make` (or `make help`) to list the available targets.
 #
-# Cutting a release:
-#   make release                 # version defaults to today's date (YYYY.M.D)
-#   make release VERSION=2026.3.0 # or pin an explicit version
-# This bumps Cargo.toml, runs all checks, commits, tags vX.Y.Z and pushes.
-# The release workflow (release-kit v2) then builds the per-platform archives,
-# publishes the GitHub Release and SHA256SUMS, and merges a PR updating the
-# Homebrew formula; release-extras.yml then does the same for the Scoop manifest.
+# Cutting a release (release.mk, from release-kit):
+#   make release-dry             # show what would be tagged
+#   make release                 # tag origin/main as vYYYY.M.D and push the tag
+# Nothing is bumped or committed locally. The release workflow (release-kit v2)
+# builds the per-platform archives, publishes the GitHub Release and SHA256SUMS,
+# and merges a PR bumping Cargo.toml and the Homebrew formula; release-extras.yml
+# then does the same for the Scoop manifest.
 
 SHELL := bash
 .DEFAULT_GOAL := help
 
+include release.mk
+
 CARGO ?= cargo
 CURRENT_VERSION := $(shell grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
 
-# `release`/`update-packaging` arguments (must be supplied on the command line).
+# `update-packaging` arguments (must be supplied on the command line).
 VERSION ?=
 # The release's SHA256SUMS file for `update-packaging` (release-extras.yml
 # passes the published one; rarely needed by hand).
@@ -64,15 +66,15 @@ fmt: ## Format the code
 
 .PHONY: fmt-check
 fmt-check: ## Check formatting without modifying files
-	$(CARGO) fmt --all -- --check
+	$(CARGO) fmt --all --check
 
 .PHONY: lint
 lint: ## Run clippy with warnings denied
-	$(CARGO) clippy --all-targets -- -D warnings
+	$(CARGO) clippy --workspace --all-targets --all-features --locked -- -D warnings
 
 .PHONY: test
 test: ## Run the full test suite (unit, integration, doctests)
-	$(CARGO) test
+	$(CARGO) test --workspace --all-features --locked
 
 .PHONY: shellcheck
 shellcheck: ## Lint the shell scripts (skipped if shellcheck is absent)
@@ -95,11 +97,15 @@ verify-packaging: ## Smoke-test the Scoop manifest generator
 	echo "packaging generator OK"
 
 .PHONY: check
-check: fmt-check lint test shellcheck verify-packaging ## Run every CI check
+check: fmt-check lint test shellcheck verify-packaging ## CI's check job (fmt, clippy, test) plus its packaging job
 	@echo "All checks passed."
 
 .PHONY: ci
 ci: check ## Alias for check
+
+.PHONY: hooks
+hooks: ## Install the git hooks (pre-commit and pre-push) from prek.toml
+	prek install
 
 ##@ Release
 
@@ -112,7 +118,3 @@ update-packaging: ## Regenerate the Scoop manifest: make update-packaging VERSIO
 	@test -n "$(VERSION)"   || { echo "error: VERSION is required" >&2; exit 1; }; \
 	test -n "$(CHECKSUMS)" || { echo "error: CHECKSUMS (path to SHA256SUMS) is required" >&2; exit 1; }; \
 	scripts/update-packaging.sh "$(VERSION)" "$(CHECKSUMS)"
-
-.PHONY: release
-release: ## Cut a release (version defaults to today's date; override with VERSION=)
-	@scripts/release.sh $(VERSION)

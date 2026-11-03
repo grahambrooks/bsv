@@ -5,22 +5,19 @@ repository — there is no separate Homebrew tap or Scoop bucket repo to maintai
 
 ## Cutting a release
 
-Use the Makefile target, which gates on a green build and handles the version
-bump, commit, tag, and push:
+The tag is the version. Cut a release from a green `main`:
 
 ```bash
-make release                  # version defaults to today's date, e.g. 2026.6.28
-make release VERSION=2026.3.0  # or pin an explicit version
+make release-dry   # what would be tagged
+make release       # tag origin/main with the next version and push the tag
 ```
 
-Versions are calendar-based (`year.month.day`), so a bare `make release` stamps
-today's date. This (via [`scripts/release.sh`](scripts/release.sh)):
-
-1. verifies the working tree is clean, you're on an up-to-date `main`, and the
-   tag doesn't already exist (a same-day re-release needs an explicit `VERSION=`);
-2. runs `make check` (format, clippy, tests, shellcheck, packaging smoke test);
-3. bumps the version in `Cargo.toml`, refreshes `Cargo.lock`;
-4. commits `Release vX.Y.Z`, creates an annotated tag, and pushes both.
+Versions are calendar-based, `vYYYY.M.D` from today's UTC date; if that tag
+already exists the last number is bumped until it is free, so a same-day
+re-release needs no arguments. `make release` (from [`release.mk`](release.mk),
+shared across grahambrooks' Rust tools via release-kit) fetches tags, tags
+`origin/main`, and pushes only the tag. Nothing is bumped or committed locally,
+and local uncommitted work or the current branch don't matter.
 
 Pushing the tag triggers the [`release`](.github/workflows/release.yml) workflow
 (release-kit v2; configured by [`.release.env`](.release.env)), which then:
@@ -29,7 +26,8 @@ Pushing the tag triggers the [`release`](.github/workflows/release.yml) workflow
    - uploads each as `bsv-vX.Y.Z-<target>.tar.gz` (`.zip` on Windows) to the
      GitHub Release, plus one `SHA256SUMS` file;
    - regenerates `Formula/bsv.rb` via [`scripts/release.py`](scripts/release.py)
-     and merges it to `main` through a pull request.
+     and merges it, with the `Cargo.toml` version bump, to `main` through a
+     pull request.
 
 When that succeeds, [`release-extras`](.github/workflows/release-extras.yml)
 regenerates `bucket/bsv.json` from the published `SHA256SUMS` via
