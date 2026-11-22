@@ -5,12 +5,11 @@ edition = "2024"
 description = "Backstage Entity Visualizer - TUI for exploring catalog-info.yaml files"
 license = "MIT"
 repository = "https://github.com/grahambrooks/bsv"
-homepage = "https://github.com/grahambrooks/bsv"
 readme = "README.md"
 keywords = ["backstage", "tui", "catalog", "devops", "terminal"]
 categories = ["command-line-utilities", "development-tools"]
 authors = ["Graham Brooks <graham@grahambrooks.com>"]
-rust-version = "1.99.1"
+rust-version = "1.100.0"
 
 [dependencies]
 ratatui = "0.30"
@@ -20,9 +19,9 @@ serde_yaml = "0.9"
 serde_json = "1.0"
 walkdir = "2.5"
 anyhow = "1.0"
-jsonschema = "0.61"
-once_cell = "1.19"
-notify = "8"
+jsonschema = "0.63"
+once_cell = "1.21"
+notify = "9"
 
 [[bin]]
 name = "bsv"
